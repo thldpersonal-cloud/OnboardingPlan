@@ -246,20 +246,28 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="field"><label>Дата выхода</label><input id="f-date" type="date" /></div>
     <div class="field"><label>Наставник</label>
       <select id="f-mentor">
-        <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
+        <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
         <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
-        <option value="Уткин Александр">Уткин Александр — старший прораб</option>
-        <option value="Зенков Александр">Зенков Александр — начальник отдела ПТО</option>
         <option value="Рябов Андрей">Рябов Андрей — директор</option>
         <option value="Белов Александр">Белов Александр — директор</option>
-        <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
+        <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
+        <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
+        <option value="Уткин Александр">Уткин Александр — старший прораб</option>
+        <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
+        <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
       </select>
     </div>
     <div class="field"><label>Руководитель</label>
       <select id="f-manager">
+        <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
         <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
         <option value="Рябов Андрей">Рябов Андрей — директор</option>
         <option value="Белов Александр">Белов Александр — директор</option>
+        <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
+        <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
+        <option value="Уткин Александр">Уткин Александр — старший прораб</option>
+        <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
+        <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
       </select>
     </div>
     <div class="field"><label>HR-менеджер</label><input id="f-hr" placeholder="Калугина Екатерина" value="Калугина Екатерина" /></div>
@@ -339,6 +347,33 @@ function makeTasksForeman(startDate, manager, hr, mentor) {
     {name:'Прохождение тестов по инструкциям и вебинарам ТехноНиколь',owner:'mentor',who:m,date:fmt(add(35))},
     {name:'Промежуточная встреча с руководителем: оценка прогресса',owner:'manager',who:manager,date:fmt(add(42))},
     {name:'Итоговая оценка по результатам испытательного срока',owner:'hr',who:hr,date:fmt(add(49))},
+  ];
+}
+
+function makeTasksAssistant(startDate, manager, hr, mentor) {
+  const d = startDate ? new Date(startDate) : new Date();
+  const fmt = (dt) => dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+  const add = (days) => { const x = new Date(d); x.setDate(x.getDate()+days); return x; };
+  const m = mentor || 'Наставник';
+  return [
+    {name:'Знакомство с офисом, командой и руководителем',owner:'hr',who:hr,date:fmt(d)},
+    {name:'Оформление документов, доступы к почте и мессенджерам',owner:'hr',who:hr,date:fmt(d)},
+    {name:'Вводный инструктаж: правила конфиденциальности и субординация',owner:'manager',who:manager,date:fmt(d)},
+    {name:'Знакомство с форматом работы и стилем коммуникации руководителя',owner:'manager',who:manager,date:fmt(d)},
+    {name:'Настройка Todoist / системы задач, изучение регламента фиксации поручений',owner:'mentor',who:m,date:fmt(add(2))},
+    {name:'Изучение регламента покупки авиабилетов (Аэрофлот, Space+, мили)',owner:'mentor',who:m,date:fmt(add(3))},
+    {name:'Изучение реестра регулярных платежей (налоги, ЖКХ, штрафы, сервисы)',owner:'mentor',who:m,date:fmt(add(3))},
+    {name:'Ознакомление с правилами финансовой отчётности и работы с чеками',owner:'mentor',who:m,date:fmt(add(4))},
+    {name:'Получение доступов: карты, календарь, Telegram-каналы, сервисы',owner:'manager',who:manager,date:fmt(add(4))},
+    {name:'Первая самостоятельная фиксация задач из входящих поручений',owner:'mentor',who:m,date:fmt(add(7))},
+    {name:'Подготовка первого еженедельного статус-отчёта (что сделано / в работе / зависло)',owner:'mentor',who:m,date:fmt(add(7))},
+    {name:'Организация первой поездки или встречи руководителя (с наставником)',owner:'mentor',who:m,date:fmt(add(10))},
+    {name:'Контроль регулярных платежей: сверка с реестром, сбор чеков',owner:'mentor',who:m,date:fmt(add(14))},
+    {name:'Промежуточная встреча с руководителем: обратная связь по первым 2 неделям',owner:'manager',who:manager,date:fmt(add(14))},
+    {name:'Самостоятельная работа по всем блокам (задачи, календарь, финансы, поездки)',owner:'mentor',who:m,date:fmt(add(21))},
+    {name:'Первичная оценка по KPI: фиксация задач, выполнение в срок, финансовая дисциплина',owner:'manager',who:manager,date:fmt(add(30))},
+    {name:'Итоговая встреча по испытательному сроку с руководителем и HR',owner:'hr',who:hr,date:fmt(add(58))},
+    {name:'Оформление результата испытательного срока, постановка целей на квартал',owner:'manager',who:manager,date:fmt(add(60))},
   ];
 }
 
@@ -535,19 +570,21 @@ const DEFAULT_DOCS = [
   { id:'d8', icon:'📝', name:'Должностная инструкция',      desc:'Обязанности бухгалтера',        tag:'req', file:null, fileName:null },
 ];
 
-const OWNER_OPTIONS = [
-  { owner: 'hr',         who: 'Калугина Екатерина',  label: 'HR — Калугина Екатерина' },
-  { owner: 'manager',    who: 'Бронникова Марина',    label: 'Руководитель — Бронникова Марина' },
-  { owner: 'manager',    who: 'Рябов Андрей',         label: 'Руководитель — Рябов Андрей' },
-  { owner: 'manager',    who: 'Белов Александр',      label: 'Руководитель — Белов Александр' },
-  { owner: 'accounting', who: 'Давыдова Юля',         label: 'Бухгалтерия — Давыдова Юля' },
-  { owner: 'accounting', who: 'Бронникова Марина',    label: 'Бухгалтерия — Бронникова Марина' },
-  { owner: 'mentor',     who: 'Уткин Александр',      label: 'Наставник — Уткин Александр' },
-  { owner: 'mentor',     who: 'Зенков Александр',     label: 'Наставник — Зенков Александр' },
-  { owner: 'mentor',     who: 'Шмидт Светлана',       label: 'Наставник — Шмидт Светлана' },
-  { owner: 'office',     who: 'Офис-менеджер',        label: 'Офис-менеджер' },
-  { owner: 'it',         who: 'IT-отдел',             label: 'IT-отдел' },
+const PEOPLE = [
+  { owner: 'hr',      who: 'Калугина Екатерина',  label: 'Калугина Екатерина — HR' },
+  { owner: 'accounting', who: 'Бронникова Марина', label: 'Бронникова Марина — гл. бухгалтер' },
+  { owner: 'manager', who: 'Рябов Андрей',         label: 'Рябов Андрей — директор' },
+  { owner: 'manager', who: 'Белов Александр',      label: 'Белов Александр — директор' },
+  { owner: 'accounting', who: 'Давыдова Юля',      label: 'Давыдова Юля — бухгалтер' },
+  { owner: 'office',  who: 'Гаязова Наталья',      label: 'Гаязова Наталья — нач. отдела снабжения' },
+  { owner: 'mentor',  who: 'Уткин Александр',      label: 'Уткин Александр — старший прораб' },
+  { owner: 'mentor',  who: 'Зенков Александр',     label: 'Зенков Александр — нач. отдела ПТО' },
+  { owner: 'mentor',  who: 'Шмидт Светлана',       label: 'Шмидт Светлана — ассистент рук.' },
+  { owner: 'it',      who: 'IT-отдел',             label: 'IT-отдел' },
+  { owner: 'office',  who: 'Офис-менеджер',        label: 'Офис-менеджер' },
 ];
+
+const OWNER_OPTIONS = PEOPLE;
 
 function renderDetailTasks(emp) {
   const container = document.getElementById('tab-plan');
@@ -588,6 +625,9 @@ const OWNER_COLORS = {
   'Бронникова Марина': {bg:'#EAF3DE',color:'#3B6D11'},
   'Давыдова Юля':      {bg:'#FAEEDA',color:'#854F0B'},
   'Калугина Екатерина':{bg:'#E1F5EE',color:'#0F6E56'},
+  'Гаязова Наталья':   {bg:'#FAECE7',color:'#993C1D'},
+  'Зенков Александр':  {bg:'#EEEDFE',color:'#534AB7'},
+  'Шмидт Светлана':    {bg:'#FAEEDA',color:'#854F0B'},
 };
 
 function buildCommentsList(comments) {
@@ -616,14 +656,15 @@ function renderComments(emp) {
       <textarea id="comment-text" rows="3" placeholder="Оставьте заметку или комментарий по итогам адаптации..."></textarea>
       <div class="comment-form-row">
         <select class="comment-author-select" id="comment-author">
+          <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
+          <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
           <option value="Рябов Андрей">Рябов Андрей — директор</option>
           <option value="Белов Александр">Белов Александр — директор</option>
-          <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+          <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
+          <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
           <option value="Уткин Александр">Уткин Александр — старший прораб</option>
           <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
           <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
-          <option value="Давыдова Юля">Давыдова Юля — наставник</option>
-          <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
         </select>
         <button class="comment-submit" onclick="addComment()">Добавить</button>
       </div>
@@ -941,9 +982,10 @@ function createEmployee() {
   const manager = document.getElementById('f-manager').value;
   const hr = document.getElementById('f-hr').value.trim() || 'HR-менеджер';
   const startDisplay = startDate ? new Date(startDate).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-  const isForeman = role === 'Прораб';
-  const taskList = isForeman
+  const taskList = role === 'Прораб'
     ? makeTasksForeman(startDate, manager, hr, mentor)
+    : role === 'Личный помощник'
+    ? makeTasksAssistant(startDate, manager, hr, mentor)
     : makeTasks(startDate, manager, hr, mentor);
   const emp = {
     id: 'emp_' + Date.now(),
@@ -980,8 +1022,10 @@ function editStartDate() {
       const newDate = new Date(input.value);
       emp.startDate = input.value;
       emp.startDisplay = newDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-      emp.tasks = (emp.role === 'Прораб')
+      emp.tasks = emp.role === 'Прораб'
         ? makeTasksForeman(input.value, emp.manager, emp.hr, emp.mentor)
+        : emp.role === 'Личный помощник'
+        ? makeTasksAssistant(input.value, emp.manager, emp.hr, emp.mentor)
         : makeTasks(input.value, emp.manager, emp.hr, emp.mentor);
       emp.checked = new Array(emp.tasks.length).fill(false);
       save();
