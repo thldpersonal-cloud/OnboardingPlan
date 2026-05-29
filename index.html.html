@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Адаптация сотрудников</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a18; font-size: 14px; }
+.app { max-width: 780px; margin: 0 auto; padding: 20px 16px 48px; }
+
+/* TOP BAR */
+.topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.topbar-title { font-size: 16px; font-weight: 500; }
+.topbar-sub { font-size: 12px; color: #888780; margin-top: 2px; }
+.btn-add { display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: #1a1a18; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.btn-add:hover { background: #333; }
+
+/* EMPLOYEE LIST */
+.emp-list { display: flex; flex-direction: column; gap: 10px; }
+.emp-card { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: border-color 0.2s; }
+.emp-card:hover { border-color: #888780; }
+.avatar { width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 14px; flex-shrink: 0; }
+.emp-info { flex: 1; }
+.emp-name { font-size: 14px; font-weight: 500; }
+.emp-meta { font-size: 12px; color: #888780; margin-top: 2px; }
+.emp-progress { text-align: right; min-width: 100px; }
+.emp-pct { font-size: 18px; font-weight: 500; }
+.emp-pbar-wrap { background: #e0dfd8; border-radius: 3px; height: 4px; margin-top: 5px; }
+.emp-pbar { height: 4px; border-radius: 3px; background: #1D9E75; }
+.emp-stage-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
+.s-done { background: #EAF3DE; color: #3B6D11; }
+.s-active { background: #E6F1FB; color: #185FA5; }
+.s-pending { background: #f1efe8; color: #888780; }
+.emp-delete { padding: 6px 8px; background: transparent; border: none; cursor: pointer; color: #c8c7c0; border-radius: 6px; font-size: 16px; }
+.emp-delete:hover { color: #A32D2D; background: #FCEBEB; }
+
+/* DETAIL VIEW */
+.detail { display: none; }
+.back-btn { display: flex; align-items: center; gap: 6px; background: transparent; border: none; cursor: pointer; font-size: 13px; color: #888780; padding: 0; margin-bottom: 16px; }
+.back-btn:hover { color: #1a1a18; }
+.header-card { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.progress-box { text-align: center; min-width: 140px; }
+.progress-pct { font-size: 28px; font-weight: 500; }
+.progress-label { font-size: 11px; color: #888780; }
+.pbar-wrap { background: #e0dfd8; border-radius: 4px; height: 6px; margin: 5px 0 4px; }
+.pbar { height: 6px; border-radius: 4px; background: #1D9E75; transition: width 0.4s; }
+.pdetail { font-size: 11px; color: #888780; }
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.stat { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 8px; padding: 10px; text-align: center; }
+.stat-n { font-size: 18px; font-weight: 500; }
+.stat-l { font-size: 10px; color: #888780; margin-top: 2px; }
+.nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; border-bottom: 0.5px solid #e0dfd8; padding-bottom: 0; }
+.tabs { display: flex; }
+.tab { padding: 7px 14px; font-size: 13px; cursor: pointer; border: none; background: transparent; color: #888780; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab.active { color: #1a1a18; font-weight: 500; border-bottom-color: #1a1a18; }
+.role-toggle { display: flex; gap: 5px; align-items: center; padding-bottom: 8px; }
+.role-toggle span { font-size: 11px; color: #888780; }
+.rbtn { padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 0.5px solid #c8c7c0; background: transparent; cursor: pointer; color: #888780; }
+.rbtn.active { background: #fff; color: #1a1a18; border-color: #888780; }
+.stage { margin-bottom: 18px; }
+.stage-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.stage-title { font-size: 13px; font-weight: 500; }
+.stage-days { font-size: 11px; color: #888780; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+.badge-done { background: #EAF3DE; color: #3B6D11; }
+.badge-active { background: #E6F1FB; color: #185FA5; }
+.badge-pending { background: #f1efe8; color: #888780; }
+.tasks { display: flex; flex-direction: column; gap: 5px; }
+.task { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 8px; padding: 10px 13px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; }
+.task.done-task { opacity: 0.5; }
+.check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #c8c7c0; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 11px; color: transparent; transition: all 0.2s; user-select: none; }
+.check.done { background: #1D9E75; border-color: #1D9E75; color: #fff; }
+.task-body { flex: 1; }
+.task-name { font-size: 13px; }
+.task-name.struck { text-decoration: line-through; color: #aaa; }
+.task-meta { display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 2px 7px; border-radius: 20px; }
+.p-hr { background: #EEEDFE; color: #534AB7; }
+.p-manager { background: #E6F1FB; color: #185FA5; }
+.p-it { background: #FAEEDA; color: #854F0B; }
+.p-accounting { background: #EAF3DE; color: #3B6D11; }
+.p-office { background: #FAECE7; color: #993C1D; }
+.task-who { font-size: 11px; color: #888780; }
+.task-date { font-size: 11px; color: #b4b2a9; margin-left: auto; flex-shrink: 0; cursor: pointer; padding: 3px 6px; border-radius: 5px; border: 0.5px solid transparent; transition: border-color 0.15s, background 0.15s; }
+.task-date:hover { border-color: #c8c7c0; background: #f5f4f0; color: #1a1a18; }
+.date-input { font-size: 11px; color: #1a1a18; border: 0.5px solid #888780; border-radius: 5px; padding: 2px 5px; background: #fff; outline: none; width: 90px; margin-left: auto; flex-shrink: 0; }
+.docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: 10px; }
+.doc-card { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 8px; padding: 13px; position: relative; }
+.doc-card:hover .doc-actions { opacity: 1; }
+.doc-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; }
+.doc-action-btn { padding: 3px 6px; border: 0.5px solid #c8c7c0; border-radius: 5px; background: #fff; cursor: pointer; font-size: 11px; color: #888780; }
+.doc-action-btn:hover { background: #f5f4f0; color: #1a1a18; }
+.doc-action-del:hover { color: #A32D2D; background: #FCEBEB; border-color: #f0c0c0; }
+.doc-icon { font-size: 20px; margin-bottom: 7px; }
+.doc-name { font-size: 13px; font-weight: 500; cursor: pointer; }
+.doc-name:hover { color: #534AB7; }
+.doc-desc { font-size: 11px; color: #888780; margin-top: 3px; cursor: pointer; }
+.doc-desc:hover { color: #1a1a18; }
+.doc-tag { font-size: 10px; padding: 2px 7px; border-radius: 20px; display: inline-block; margin-top: 5px; cursor: pointer; }
+.tag-req { background: #FCEBEB; color: #A32D2D; }
+.tag-opt { background: #f1efe8; color: #888780; }
+.doc-file-area { margin-top: 10px; border-top: 0.5px solid #f1efe8; padding-top: 8px; }
+.doc-file-link { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #185FA5; text-decoration: none; word-break: break-all; }
+.doc-file-link:hover { text-decoration: underline; }
+.doc-upload-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888780; cursor: pointer; padding: 3px 0; border: none; background: none; }
+.doc-upload-btn:hover { color: #1a1a18; }
+.doc-inline-input { font-size: 12px; border: 0.5px solid #888780; border-radius: 5px; padding: 2px 6px; outline: none; width: 100%; font-family: inherit; background: #fff; color: #1a1a18; }
+.note { background: #f1efe8; border-radius: 0 8px 8px 0; border-left: 3px solid #1D9E75; padding: 9px 13px; font-size: 12px; color: #5F5E5A; margin-top: 14px; }
+.updated-hint { font-size: 11px; color: #b4b2a9; text-align: right; margin-top: 14px; }
+.hidden { display: none; }
+.owner-select { font-size: 11px; border: 0.5px solid #888780; border-radius: 6px; padding: 2px 5px; background: #fff; color: #1a1a18; outline: none; cursor: pointer; max-width: 180px; }
+.task-meta { cursor: pointer; }
+.task-meta:hover .pill { opacity: 0.75; }
+.task-name { cursor: pointer; }
+.task-name:hover { color: #534AB7; }
+.task-name-input { font-size: 13px; color: #1a1a18; border: 0.5px solid #888780; border-radius: 6px; padding: 2px 7px; background: #fff; outline: none; width: 100%; font-family: inherit; }
+.comments-block { margin-top: 16px; background: #fff; border: 0.5px solid #e0dfd8; border-radius: 12px; padding: 16px; }
+.comments-title { font-size: 13px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+.comments-title span { font-size: 15px; }
+.comment-item { border-bottom: 0.5px solid #f1efe8; padding: 10px 0; }
+.comment-item:last-child { border-bottom: none; padding-bottom: 0; }
+.comment-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.comment-avatar { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+.comment-author { font-size: 12px; font-weight: 500; }
+.comment-date { font-size: 11px; color: #b4b2a9; margin-left: auto; }
+.comment-text { font-size: 13px; color: #1a1a18; line-height: 1.5; padding-left: 32px; }
+.comment-delete { background: none; border: none; cursor: pointer; color: #d0cfc8; font-size: 13px; padding: 0 4px; }
+.comment-delete:hover { color: #A32D2D; }
+.comment-form { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.comment-form textarea { width: 100%; padding: 9px 11px; border: 0.5px solid #c8c7c0; border-radius: 8px; font-size: 13px; font-family: inherit; resize: none; outline: none; background: #faf9f7; color: #1a1a18; line-height: 1.5; }
+.comment-form textarea:focus { border-color: #888780; background: #fff; }
+.comment-form-row { display: flex; gap: 8px; align-items: center; }
+.comment-author-select { flex: 1; padding: 7px 10px; border: 0.5px solid #c8c7c0; border-radius: 8px; font-size: 12px; background: #fff; color: #1a1a18; outline: none; }
+.comment-submit { padding: 7px 16px; background: #1a1a18; color: #fff; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.comment-submit:hover { background: #333; }
+.no-comments { font-size: 12px; color: #b4b2a9; padding: 4px 0 8px; }
+
+/* MODAL */
+.modal-bg { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 14px; padding: 24px; max-width: 420px; margin: 0 auto; }
+.modal { }
+.modal h3 { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+.field { margin-bottom: 12px; }
+.field label { font-size: 12px; color: #888780; display: block; margin-bottom: 4px; }
+.field input, .field select { width: 100%; padding: 8px 10px; border: 0.5px solid #c8c7c0; border-radius: 7px; font-size: 13px; background: #fff; color: #1a1a18; outline: none; }
+.field input:focus, .field select:focus { border-color: #888780; }
+.modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+.btn-cancel { flex: 1; padding: 9px; border: 0.5px solid #c8c7c0; border-radius: 8px; background: transparent; cursor: pointer; font-size: 13px; color: #888780; }
+.btn-create { flex: 2; padding: 9px; background: #1a1a18; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.empty-state { text-align: center; padding: 48px 20px; color: #888780; }
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-title { font-size: 15px; font-weight: 500; color: #1a1a18; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+<!-- LIST VIEW -->
+<div id="list-view">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Адаптация сотрудников</div>
+      <div class="topbar-sub" id="emp-count-label">Загрузка...</div>
+    </div>
+    <button class="btn-add" onclick="openModal()">+ Добавить сотрудника</button>
+  </div>
+  <div class="emp-list" id="emp-list"></div>
+</div>
+
+<!-- DETAIL VIEW -->
+<div id="detail-view" class="detail">
+  <button class="back-btn" onclick="showList()">← Все сотрудники</button>
+  <div class="header-card">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div class="avatar" id="d-avatar" style="width:48px;height:48px;font-size:15px"></div>
+      <div>
+        <div style="font-size:16px;font-weight:500" id="d-name"></div>
+        <div style="font-size:12px;color:#888780;margin-top:3px" id="d-meta"></div>
+      </div>
+    </div>
+    <div class="progress-box">
+      <div class="progress-pct" id="d-pct">0%</div>
+      <div class="progress-label">выполнено</div>
+      <div class="pbar-wrap"><div class="pbar" id="d-pbar" style="width:0%"></div></div>
+      <div class="pdetail" id="d-pdetail">0 из 18 задач</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n" id="ds1">0/4</div><div class="stat-l">День 1</div></div>
+    <div class="stat"><div class="stat-n" id="ds2">0/5</div><div class="stat-l">Неделя 1</div></div>
+    <div class="stat"><div class="stat-n" id="ds3">0/5</div><div class="stat-l">Месяц 1</div></div>
+    <div class="stat"><div class="stat-n" id="ds4">0/4</div><div class="stat-l">Исп. срок</div></div>
+  </div>
+  <div class="nav">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('plan',this)">Задачи</button>
+      <button class="tab" onclick="switchTab('docs',this)">Документы</button>
+    </div>
+    <div class="role-toggle" id="role-toggle">
+      <span>Роль:</span>
+      <button class="rbtn active" onclick="setRole('all',this)">Все</button>
+      <button class="rbtn" onclick="setRole('hr',this)">HR</button>
+      <button class="rbtn" onclick="setRole('manager',this)">Руководитель</button>
+    </div>
+  </div>
+  <div id="tab-plan"></div>
+  <div id="tab-docs" class="hidden">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button class="btn-add" style="font-size:12px;padding:6px 14px" onclick="addDoc()">+ Добавить документ</button>
+    </div>
+    <div class="docs-grid" id="docs-grid"></div>
+  </div>
+  <div class="updated-hint" id="d-updated"></div>
+</div>
+
+</div>
+
+<!-- ADD FORM -->
+<div class="modal-bg hidden" id="modal">
+  <div class="modal">
+    <h3>Новый сотрудник</h3>
+    <div class="field"><label>Имя и фамилия</label><input id="f-name" placeholder="Анна Иванова" /></div>
+    <div class="field"><label>Должность</label>
+      <select id="f-role">
+        <option>Бухгалтер</option>
+        <option>Старший бухгалтер</option>
+        <option>Бухгалтер на участок ОС</option>
+        <option>Бухгалтер по зарплате</option>
+        <option>Бухгалтер-кассир</option>
+        <option>Другое</option>
+      </select>
+    </div>
+    <div class="field"><label>Дата выхода</label><input id="f-date" type="date" /></div>
+    <div class="field"><label>Наставник</label>
+      <select id="f-mentor">
+        <option value="Давыдова Юля">Давыдова Юля (бухгалтер)</option>
+        <option value="Бронникова Марина">Бронникова Марина (гл. бухгалтер)</option>
+      </select>
+    </div>
+    <div class="field"><label>Руководитель</label>
+      <select id="f-manager">
+        <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+        <option value="Рябов Андрей">Рябов Андрей — директор</option>
+        <option value="Белов Александр">Белов Александр — директор</option>
+      </select>
+    </div>
+    <div class="field"><label>HR-менеджер</label><input id="f-hr" placeholder="Калугина Екатерина" value="Калугина Екатерина" /></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-create" onclick="createEmployee()">Создать план</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const AVATAR_COLORS = [
+  {bg:'#E6F1FB',color:'#185FA5'},{bg:'#EEEDFE',color:'#534AB7'},
+  {bg:'#EAF3DE',color:'#3B6D11'},{bg:'#FAEEDA',color:'#854F0B'},
+  {bg:'#E1F5EE',color:'#0F6E56'},{bg:'#FAECE7',color:'#993C1D'}
+];
+
+const STAGE_RANGES = [[0,3],[4,8],[9,13],[14,17]];
+const STAGE_TOTALS = [4,5,5,4];
+const TOTAL = 18;
+
+function makeTasks(startDate, manager, hr, mentor) {
+  const d = startDate ? new Date(startDate) : new Date();
+  const fmt = (dt) => dt.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+  const add = (days) => { const x = new Date(d); x.setDate(x.getDate()+days); return x; };
+  const m = mentor || 'Давыдова Юля';
+  return [
+    {name:'Встреча с командой, знакомство',owner:'hr',who:hr,date:fmt(d)},
+    {name:'Экскурсия по офису, пропуск и рабочее место',owner:'hr',who:hr,date:fmt(d)},
+    {name:'Выдача ноутбука, настройка учётных записей',owner:'office',who:'Офис-менеджер',date:fmt(d)},
+    {name:'Вводный инструктаж по безопасности',owner:'hr',who:hr,date:fmt(d)},
+    {name:'Изучение регламента документооборота',owner:'accounting',who:m,date:fmt(add(2))},
+    {name:'Знакомство с 1С: Бухгалтерия, доступы',owner:'it',who:'IT-отдел',date:fmt(add(1))},
+    {name:'Встреча с руководителем: зоны ответственности',owner:'manager',who:manager,date:fmt(add(1))},
+    {name:'Ознакомление с учётной политикой организации',owner:'accounting',who:m,date:fmt(add(3))},
+    {name:'Онбординг-встреча с HR: вопросы и обратная связь',owner:'hr',who:hr,date:fmt(add(4))},
+    {name:'Самостоятельная обработка первичных документов (с наставником)',owner:'accounting',who:m,date:fmt(add(18))},
+    {name:'Участие в подготовке ежемесячной отчётности',owner:'accounting',who:m,date:fmt(add(28))},
+    {name:'Промежуточная встреча с руководителем',owner:'manager',who:manager,date:fmt(add(18))},
+    {name:'Проверка знаний по учётной политике (тест)',owner:'hr',who:hr,date:fmt(add(32))},
+    {name:'Обратная связь от команды (30-дневный чек-ин)',owner:'manager',who:manager,date:fmt(add(32))},
+    {name:'Полная самостоятельная работа по участку учёта',owner:'accounting',who:m,date:'Мес. 2'},
+    {name:'60-дневный чек-ин: оценка прогресса',owner:'manager',who:manager,date:fmt(add(62))},
+    {name:'Оценка по итогам испытательного срока',owner:'hr',who:hr,date:fmt(add(89))},
+    {name:'Финальная встреча и постановка целей на квартал',owner:'manager',who:manager,date:fmt(add(91))},
+  ];
+}
+
+let employees = [];
+let currentId = null;
+
+function migrateEmployees() {
+  let changed = false;
+  employees.forEach(emp => {
+    emp.tasks.forEach(t => {
+      if (t.name === 'Встреча с командой бухгалтерии, знакомство') {
+        t.name = 'Встреча с командой, знакомство'; changed = true;
+      }
+      if (t.name === 'Встреча с командой, знакомство' && t.owner === 'hr' && (!t.who || t.who === 'HR' || t.who === 'HR-менеджер')) {
+        t.who = emp.hr || 'Калугина Екатерина'; changed = true;
+      }
+      if (t.name === 'Выдача ноутбука, настройка учётных записей' && (t.owner === 'it' || t.owner === 'IT')) {
+        t.owner = 'office'; t.who = 'Офис-менеджер'; changed = true;
+      }
+      if (t.name === 'Знакомство с 1С: Бухгалтерия, доступы' && (t.owner === 'it' || t.owner === 'IT')) {
+        t.owner = 'it'; changed = true;
+      }
+    });
+  });
+  if (changed) save();
+}
+
+function load() {
+  try { employees = JSON.parse(localStorage.getItem('ob_employees') || '[]'); } catch(e) { employees = []; }
+  migrateEmployees();
+  renderList();
+}
+
+function save() {
+  try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
+}
+
+function initials(name) {
+  return name.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+}
+
+function getColor(idx) { return AVATAR_COLORS[idx % AVATAR_COLORS.length]; }
+
+function currentStageLabel(emp) {
+  const done = emp.checked.filter(Boolean).length;
+  const pct = Math.round(done / TOTAL * 100);
+  if (pct === 100) return {text:'Адаптирован',cls:'s-done'};
+  for (let si = 0; si < STAGE_RANGES.length; si++) {
+    const [a,b] = STAGE_RANGES[si];
+    const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
+    if (sdone < STAGE_TOTALS[si]) {
+      const labels = ['День 1','Неделя 1','Месяц 1','Исп. срок'];
+      return {text: labels[si] + (sdone>0?' · в процессе':' · ожидает'), cls: sdone>0?'s-active':'s-pending'};
+    }
+  }
+  return {text:'Адаптирован',cls:'s-done'};
+}
+
+function renderList() {
+  const el = document.getElementById('emp-list');
+  const label = document.getElementById('emp-count-label');
+  label.textContent = employees.length === 0 ? 'Нет сотрудников' : employees.length + ' ' + (employees.length===1?'сотрудник':employees.length<5?'сотрудника':'сотрудников') + ' на адаптации';
+
+  if (employees.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Нет сотрудников</div><div>Нажмите «Добавить сотрудника», чтобы создать первый план адаптации</div></div>';
+    return;
+  }
+
+  el.innerHTML = employees.map((emp, idx) => {
+    const done = emp.checked.filter(Boolean).length;
+    const pct = Math.round(done / TOTAL * 100);
+    const c = getColor(idx);
+    const stage = currentStageLabel(emp);
+    return `<div class="emp-card" onclick="showDetail('${emp.id}')">
+      <div class="avatar" style="background:${c.bg};color:${c.color}">${initials(emp.name)}</div>
+      <div class="emp-info">
+        <div class="emp-name">${emp.name}</div>
+        <div class="emp-meta">${emp.role} · с ${emp.startDisplay}</div>
+        <span class="emp-stage-badge ${stage.cls}">${stage.text}</span>
+      </div>
+      <div class="emp-progress">
+        <div class="emp-pct">${pct}%</div>
+        <div class="emp-pbar-wrap"><div class="emp-pbar" style="width:${pct}%"></div></div>
+        <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${TOTAL} задач</div>
+      </div>
+      <button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(id) {
+  currentId = id;
+  const emp = employees.find(e => e.id === id);
+  if (!emp) return;
+  const idx = employees.indexOf(emp);
+  const c = getColor(idx);
+
+  document.getElementById('list-view').style.display = 'none';
+  const dv = document.getElementById('detail-view');
+  dv.style.display = 'block';
+
+  const av = document.getElementById('d-avatar');
+  av.textContent = initials(emp.name);
+  av.style.background = c.bg;
+  av.style.color = c.color;
+  document.getElementById('d-name').textContent = emp.name;
+  document.getElementById('d-meta').textContent = emp.role + ' · Выход: ' + emp.startDisplay + ' · Рук.: ' + emp.manager;
+
+  renderDetailTasks(emp);
+  updateDetailProgress(emp);
+  document.getElementById('tab-plan').style.display = '';
+  document.getElementById('tab-docs').classList.add('hidden');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  setRole('all', document.querySelector('.rbtn'));
+}
+
+function showList() {
+  currentId = null;
+  document.getElementById('list-view').style.display = '';
+  document.getElementById('detail-view').style.display = 'none';
+  renderList();
+}
+
+const STAGE_DEFS = [
+  { title: 'День первый', getDate: (e) => e.startDisplay },
+  { title: 'Первая неделя', getDate: (e) => { const d=new Date(e.startDate); d.setDate(d.getDate()+1); const e2=new Date(e.startDate); e2.setDate(e2.getDate()+4); return fmtRange(d,e2); } },
+  { title: 'Первый месяц', getDate: (e) => { const d=new Date(e.startDate); d.setDate(d.getDate()+7); const e2=new Date(e.startDate); e2.setDate(e2.getDate()+32); return fmtRange(d,e2); } },
+  { title: 'Испытательный срок', getDate: () => 'Мес. 2–3' },
+];
+
+function fmtRange(a,b) {
+  return a.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+' – '+b.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+}
+
+const PILL_MAP = { hr:'<span class="pill p-hr">HR</span>', manager:'<span class="pill p-manager">Руководитель</span>', it:'<span class="pill p-it">IT</span>', accounting:'<span class="pill p-accounting">Бухгалтерия</span>', office:'<span class="pill p-office">Офис-менеджер</span>' };
+
+const DEFAULT_DOCS = [
+  { id:'d1', icon:'📄', name:'Учётная политика',          desc:'Принципы ведения бухучёта',     tag:'req', file:null, fileName:null },
+  { id:'d2', icon:'📋', name:'Регламент документооборота', desc:'Порядок работы с первичкой',    tag:'req', file:null, fileName:null },
+  { id:'d3', icon:'🔒', name:'Инструктаж по ИБ',          desc:'Правила работы с данными',      tag:'req', file:null, fileName:null },
+  { id:'d4', icon:'💻', name:'Гайд по 1С',                desc:'Работа в 1С: Бухгалтерия',      tag:'req', file:null, fileName:null },
+  { id:'d5', icon:'👥', name:'Контакты команды',           desc:'Список сотрудников',            tag:'opt', file:null, fileName:null },
+  { id:'d6', icon:'📅', name:'Календарь отчётности',       desc:'Ключевые даты и дедлайны',      tag:'req', file:null, fileName:null },
+  { id:'d7', icon:'🗺️', name:'Структура компании',         desc:'Оргсхема и подразделения',      tag:'opt', file:null, fileName:null },
+  { id:'d8', icon:'📝', name:'Должностная инструкция',      desc:'Обязанности бухгалтера',        tag:'req', file:null, fileName:null },
+];
+
+const OWNER_OPTIONS = [
+  { owner: 'hr',         who: 'Калугина Екатерина',  label: 'HR — Калугина Екатерина' },
+  { owner: 'manager',    who: 'Бронникова Марина',    label: 'Руководитель — Бронникова Марина' },
+  { owner: 'manager',    who: 'Рябов Андрей',         label: 'Руководитель — Рябов Андрей' },
+  { owner: 'manager',    who: 'Белов Александр',      label: 'Руководитель — Белов Александр' },
+  { owner: 'accounting', who: 'Давыдова Юля',         label: 'Бухгалтерия — Давыдова Юля' },
+  { owner: 'accounting', who: 'Бронникова Марина',    label: 'Бухгалтерия — Бронникова Марина' },
+  { owner: 'office',     who: 'Офис-менеджер',        label: 'Офис-менеджер' },
+  { owner: 'it',         who: 'IT-отдел',             label: 'IT-отдел' },
+];
+
+function renderDetailTasks(emp) {
+  const container = document.getElementById('tab-plan');
+  let html = '';
+  STAGE_RANGES.forEach(([a,b],si) => {
+    const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
+    const stotal = STAGE_TOTALS[si];
+    let badgeCls, badgeText;
+    if(sdone===stotal){badgeCls='badge-done';badgeText='Выполнено';}
+    else if(sdone>0){badgeCls='badge-active';badgeText='В процессе';}
+    else{badgeCls='badge-pending';badgeText='Ожидает';}
+    html += `<div class="stage"><div class="stage-header"><span class="stage-title">${STAGE_DEFS[si].title}</span><span class="stage-days">${STAGE_DEFS[si].getDate(emp)}</span><span class="badge ${badgeCls}" id="dbadge-${si}">${badgeText}</span></div><div class="tasks">`;
+    for(let i=a;i<=b;i++){
+      const t = emp.tasks[i];
+      const doneClass = emp.checked[i] ? 'done-task' : '';
+      const struckClass = emp.checked[i] ? 'struck' : '';
+      const checkDone = emp.checked[i] ? 'done' : '';
+      html += `<div class="task ${doneClass}" id="dtask-${i}" data-owner="${t.owner}">
+        <div class="check ${checkDone}" onclick="toggleTask(${i})">✓</div>
+        <div class="task-body">
+          <div class="task-name ${struckClass}" id="tname-${i}" onclick="editName(${i})" title="Нажмите, чтобы изменить">${t.name}</div>
+          <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span><span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span></div>
+        </div>
+        <div class="task-date" id="tdate-${i}" onclick="editDate(${i})" title="Нажмите, чтобы изменить дату">${t.date}</div>
+      </div>`;
+    }
+    html += '</div></div>';
+  });
+  container.innerHTML = html;
+  renderComments(emp);
+}
+
+const OWNER_COLORS = {
+  'Рябов Андрей':      {bg:'#EEEDFE',color:'#534AB7'},
+  'Белов Александр':   {bg:'#E6F1FB',color:'#185FA5'},
+  'Бронникова Марина': {bg:'#EAF3DE',color:'#3B6D11'},
+  'Давыдова Юля':      {bg:'#FAEEDA',color:'#854F0B'},
+  'Калугина Екатерина':{bg:'#E1F5EE',color:'#0F6E56'},
+};
+
+function buildCommentsList(comments) {
+  if (!comments || comments.length === 0) return '<div class="no-comments">Комментариев пока нет</div>';
+  return comments.map((c, idx) => {
+    const cl = OWNER_COLORS[c.author] || {bg:'#f1efe8',color:'#888780'};
+    const init = c.author.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+    return `<div class="comment-item">
+      <div class="comment-header">
+        <div class="comment-avatar" style="background:${cl.bg};color:${cl.color}">${init}</div>
+        <span class="comment-author">${c.author}</span>
+        <span class="comment-date">${c.date}</span>
+        <button class="comment-delete" onclick="deleteComment(${idx})" title="Удалить">✕</button>
+      </div>
+      <div class="comment-text">${c.text.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderComments(emp) {
+  const container = document.getElementById('tab-plan');
+  const block = `<div class="comments-block" id="comments-block">
+    <div class="comments-title"><span>💬</span> Заметки собственников</div>
+    <div id="comments-list">${buildCommentsList(emp.comments)}</div>
+    <div class="comment-form">
+      <textarea id="comment-text" rows="3" placeholder="Оставьте заметку или комментарий по итогам адаптации..."></textarea>
+      <div class="comment-form-row">
+        <select class="comment-author-select" id="comment-author">
+          <option value="Рябов Андрей">Рябов Андрей — директор</option>
+          <option value="Белов Александр">Белов Александр — директор</option>
+          <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+          <option value="Давыдова Юля">Давыдова Юля — наставник</option>
+          <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
+        </select>
+        <button class="comment-submit" onclick="addComment()">Добавить</button>
+      </div>
+    </div>
+  </div>`;
+  container.insertAdjacentHTML('beforeend', block);
+}
+
+function addComment() {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const text = document.getElementById('comment-text').value.trim();
+  if (!text) { document.getElementById('comment-text').focus(); return; }
+  const author = document.getElementById('comment-author').value;
+  const now = new Date();
+  const date = now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+  if (!emp.comments) emp.comments = [];
+  emp.comments.push({ author, text, date });
+  save();
+  document.getElementById('comment-text').value = '';
+  document.getElementById('comments-list').innerHTML = buildCommentsList(emp.comments);
+}
+
+function deleteComment(ci) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp || !emp.comments) return;
+  emp.comments.splice(ci, 1);
+  save();
+  const list = document.getElementById('comments-list');
+  if (list) list.innerHTML = buildCommentsList(emp.comments);
+}
+
+function editName(i) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const cell = document.getElementById('tname-' + i);
+  if (!cell) return;
+  const current = emp.tasks[i].name;
+  const input = document.createElement('input');
+  input.className = 'task-name-input';
+  input.value = current;
+  cell.replaceWith(input);
+  input.focus();
+  input.select();
+  function saveName() {
+    const val = input.value.trim() || current;
+    emp.tasks[i].name = val;
+    save();
+    const newCell = document.createElement('div');
+    newCell.className = 'task-name' + (emp.checked[i] ? ' struck' : '');
+    newCell.id = 'tname-' + i;
+    newCell.title = 'Нажмите, чтобы изменить';
+    newCell.textContent = val;
+    newCell.onclick = () => editName(i);
+    input.replaceWith(newCell);
+  }
+  input.addEventListener('blur', saveName);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = current; input.blur(); }
+  });
+}
+
+function getEmpDocs(emp) {
+  if (!emp.docs) emp.docs = JSON.parse(JSON.stringify(DEFAULT_DOCS));
+  return emp.docs;
+}
+
+function renderDocs() {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const docs = getEmpDocs(emp);
+  const grid = document.getElementById('docs-grid');
+  if (!grid) return;
+  grid.innerHTML = docs.map((doc, di) => {
+    const tagLabel = doc.tag === 'req' ? 'Обязательно' : 'Справочно';
+    const tagCls = doc.tag === 'req' ? 'tag-req' : 'tag-opt';
+    const fileArea = doc.fileName
+      ? `<div class="doc-file-area"><a class="doc-file-link" href="${doc.file}" download="${doc.fileName}">📎 ${doc.fileName}</a></div>`
+      : `<div class="doc-file-area"><label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)"></div>`;
+    return `<div class="doc-card" id="doc-${di}">
+      <div class="doc-actions">
+        <button class="doc-action-btn" onclick="toggleDocTag(${di})" title="Сменить тип">${doc.tag==='req'?'→ Справочно':'→ Обязательно'}</button>
+        <button class="doc-action-btn doc-action-del" onclick="deleteDoc(${di})" title="Удалить">✕</button>
+      </div>
+      <div class="doc-icon">${doc.icon}</div>
+      <div class="doc-name" onclick="editDocField(${di},'name')" title="Нажмите, чтобы изменить">${doc.name}</div>
+      <div class="doc-desc" onclick="editDocField(${di},'desc')" title="Нажмите, чтобы изменить">${doc.desc}</div>
+      <span class="doc-tag ${tagCls}" onclick="toggleDocTag(${di})" title="Сменить тип">${tagLabel}</span>
+      ${fileArea}
+    </div>`;
+  }).join('');
+}
+
+function editDocField(di, field) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const doc = emp.docs[di];
+  const card = document.getElementById('doc-' + di);
+  const el = card.querySelector(field === 'name' ? '.doc-name' : '.doc-desc');
+  const current = doc[field];
+  const input = document.createElement('input');
+  input.className = 'doc-inline-input';
+  input.value = current;
+  el.replaceWith(input);
+  input.focus(); input.select();
+  function saveField() {
+    const val = input.value.trim() || current;
+    doc[field] = val;
+    save();
+    const newEl = document.createElement('div');
+    newEl.className = field === 'name' ? 'doc-name' : 'doc-desc';
+    newEl.title = 'Нажмите, чтобы изменить';
+    newEl.textContent = val;
+    newEl.onclick = () => editDocField(di, field);
+    input.replaceWith(newEl);
+  }
+  input.addEventListener('blur', saveField);
+  input.addEventListener('keydown', e => { if(e.key==='Enter') input.blur(); if(e.key==='Escape'){input.value=current;input.blur();} });
+}
+
+function toggleDocTag(di) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  emp.docs[di].tag = emp.docs[di].tag === 'req' ? 'opt' : 'req';
+  save(); renderDocs();
+}
+
+function deleteDoc(di) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  emp.docs.splice(di, 1);
+  save(); renderDocs();
+}
+
+function addDoc() {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  getEmpDocs(emp);
+  emp.docs.push({ id:'d'+Date.now(), icon:'📄', name:'Новый документ', desc:'Описание', tag:'opt', file:null, fileName:null });
+  save(); renderDocs();
+}
+
+function attachFile(di, input) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    emp.docs[di].file = e.target.result;
+    emp.docs[di].fileName = file.name;
+    save(); renderDocs();
+  };
+  reader.readAsDataURL(file);
+}
+
+function editOwner(i) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const cell = document.getElementById('tmeta-' + i);
+  if (!cell) return;
+  const task = emp.tasks[i];
+  const sel = document.createElement('select');
+  sel.className = 'owner-select';
+  OWNER_OPTIONS.forEach((opt, idx) => {
+    const o = document.createElement('option');
+    o.value = idx;
+    o.textContent = opt.label;
+    if (opt.owner === task.owner && opt.who === task.who) o.selected = true;
+    sel.appendChild(o);
+  });
+  cell.innerHTML = '';
+  cell.appendChild(sel);
+  sel.focus();
+  function applyOwner() {
+    const opt = OWNER_OPTIONS[+sel.value];
+    if (opt) { task.owner = opt.owner; task.who = opt.who; }
+    save();
+    cell.id = 'tmeta-' + i;
+    cell.onclick = () => editOwner(i);
+    cell.innerHTML = (PILL_MAP[task.owner] || '') + `<span class="task-who">${task.who}</span><span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span>`;
+    const taskEl = document.getElementById('dtask-' + i);
+    if (taskEl) taskEl.dataset.owner = task.owner;
+  }
+  sel.addEventListener('change', applyOwner);
+  sel.addEventListener('blur', applyOwner);
+}
+
+function editDate(i) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const cell = document.getElementById('tdate-' + i);
+  if (!cell) return;
+  const current = emp.tasks[i].date;
+  const input = document.createElement('input');
+  input.className = 'date-input';
+  input.value = current;
+  input.placeholder = 'дд.мм или текст';
+  cell.replaceWith(input);
+  input.focus();
+  input.select();
+  function save_date() {
+    const val = input.value.trim() || current;
+    emp.tasks[i].date = val;
+    save();
+    const newCell = document.createElement('div');
+    newCell.className = 'task-date';
+    newCell.id = 'tdate-' + i;
+    newCell.title = 'Нажмите, чтобы изменить дату';
+    newCell.textContent = val;
+    newCell.onclick = () => editDate(i);
+    input.replaceWith(newCell);
+  }
+  input.addEventListener('blur', save_date);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = current; input.blur(); } });
+}
+
+function toggleTask(i) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  emp.checked[i] = !emp.checked[i];
+  save();
+  const task = document.getElementById('dtask-' + i);
+  const ch = task.querySelector('.check');
+  const nm = task.querySelector('.task-name');
+  if (emp.checked[i]) { ch.classList.add('done'); nm.classList.add('struck'); task.classList.add('done-task'); }
+  else { ch.classList.remove('done'); nm.classList.remove('struck'); task.classList.remove('done-task'); }
+  updateDetailProgress(emp);
+  updateStageBadges(emp);
+  const now = new Date();
+  document.getElementById('d-updated').textContent = 'Обновлено: ' + now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}) + ' в ' + now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+}
+
+function updateDetailProgress(emp) {
+  const done = emp.checked.filter(Boolean).length;
+  const pct = Math.round(done / TOTAL * 100);
+  document.getElementById('d-pct').textContent = pct + '%';
+  document.getElementById('d-pbar').style.width = pct + '%';
+  document.getElementById('d-pdetail').textContent = done + ' из ' + TOTAL + ' задач';
+  STAGE_RANGES.forEach(([a,b],si) => {
+    const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
+    document.getElementById('ds'+(si+1)).textContent = sdone + '/' + STAGE_TOTALS[si];
+  });
+}
+
+function updateStageBadges(emp) {
+  STAGE_RANGES.forEach(([a,b],si) => {
+    const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
+    const stotal = STAGE_TOTALS[si];
+    const badge = document.getElementById('dbadge-' + si);
+    if (!badge) return;
+    if(sdone===stotal){badge.textContent='Выполнено';badge.className='badge badge-done';}
+    else if(sdone>0){badge.textContent='В процессе';badge.className='badge badge-active';}
+    else{badge.textContent='Ожидает';badge.className='badge badge-pending';}
+  });
+}
+
+function switchTab(name, el) {
+  document.getElementById('tab-plan').classList.toggle('hidden', name !== 'plan');
+  document.getElementById('tab-docs').classList.toggle('hidden', name !== 'docs');
+  document.getElementById('role-toggle').style.display = name === 'plan' ? 'flex' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  if (name === 'docs') renderDocs();
+}
+
+function setRole(role, el) {
+  document.querySelectorAll('.rbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('#tab-plan .task').forEach(t => {
+    const owner = t.dataset.owner;
+    if (role === 'all') t.style.display = '';
+    else if (role === 'hr') t.style.display = owner === 'hr' ? '' : 'none';
+    else if (role === 'manager') t.style.display = owner === 'manager' ? '' : 'none';
+  });
+}
+
+function openModal() {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('f-date').value = today;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-hr').value = '';
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  document.getElementById('list-view').style.display = '';
+}
+
+function createEmployee() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const role = document.getElementById('f-role').value;
+  const startDate = document.getElementById('f-date').value;
+  const mentor = document.getElementById('f-mentor').value;
+  const manager = document.getElementById('f-manager').value;
+  const hr = document.getElementById('f-hr').value.trim() || 'HR-менеджер';
+  const startDisplay = startDate ? new Date(startDate).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
+  const emp = {
+    id: 'emp_' + Date.now(),
+    name, role, startDate, startDisplay, manager, hr, mentor,
+    tasks: makeTasks(startDate, manager, hr, mentor),
+    checked: new Array(TOTAL).fill(false)
+  };
+  employees.push(emp);
+  save();
+  closeModal();
+  renderList();
+}
+
+function deleteEmployee(id) {
+  if (!confirm('Удалить сотрудника из системы адаптации?')) return;
+  employees = employees.filter(e => e.id !== id);
+  save();
+  renderList();
+}
+
+// set today as default date on load
+document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+
+load();
+</script>
+</body>
+</html>
