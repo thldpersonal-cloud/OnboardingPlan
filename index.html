@@ -598,7 +598,10 @@ function renderDocs() {
     const tagLabel = doc.tag === 'req' ? 'Обязательно' : 'Справочно';
     const tagCls = doc.tag === 'req' ? 'tag-req' : 'tag-opt';
     const fileArea = doc.fileName
-      ? `<div class="doc-file-area"><a class="doc-file-link" href="${doc.file}" download="${doc.fileName}">📎 ${doc.fileName}</a></div>`
+      ? `<div class="doc-file-area" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+           <a class="doc-file-link" href="${doc.file}" download="${doc.fileName}" style="flex:1;min-width:0">📎 ${doc.fileName}</a>
+           <button class="doc-action-btn doc-action-del" onclick="removeFile(${di})" title="Удалить файл" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>
+         </div>`
       : `<div class="doc-file-area"><label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)"></div>`;
     return `<div class="doc-card" id="doc-${di}">
       <div class="doc-actions">
@@ -660,6 +663,14 @@ function addDoc() {
   if (!emp) return;
   getEmpDocs(emp);
   emp.docs.push({ id:'d'+Date.now(), icon:'📄', name:'Новый документ', desc:'Описание', tag:'opt', file:null, fileName:null });
+  save(); renderDocs();
+}
+
+function removeFile(di) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp || !emp.docs[di]) return;
+  emp.docs[di].file = null;
+  emp.docs[di].fileName = null;
   save(); renderDocs();
 }
 
