@@ -82,6 +82,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .p-it { background: #FAEEDA; color: #854F0B; }
 .p-accounting { background: #EAF3DE; color: #3B6D11; }
 .p-office { background: #FAECE7; color: #993C1D; }
+.p-mentor { background: #E1F5EE; color: #0F6E56; }
 .task-who { font-size: 11px; color: #888780; }
 .task-date { font-size: 11px; color: #b4b2a9; margin-left: auto; flex-shrink: 0; cursor: pointer; padding: 3px 6px; border-radius: 5px; border: 0.5px solid transparent; transition: border-color 0.15s, background 0.15s; }
 .task-date:hover { border-color: #c8c7c0; background: #f5f4f0; color: #1a1a18; }
@@ -324,18 +325,18 @@ function makeTasksForeman(startDate, manager, hr, mentor) {
     {name:'Оформление документов, пропуск',owner:'hr',who:hr,date:fmt(d)},
     {name:'Вводный инструктаж по охране труда и безопасности',owner:'hr',who:hr,date:fmt(d)},
     {name:'Знакомство с наставником, постановка задач на испытательный срок',owner:'manager',who:manager,date:fmt(d)},
-    {name:'Выезд на объект: осмотр, знакомство с бригадами',owner:'accounting',who:m,date:fmt(add(2))},
-    {name:'Изучение технической документации ТехноНиколь (курсы learn.tn.ru)',owner:'accounting',who:m,date:fmt(add(7))},
-    {name:'Изучение регламента документооборота и работы со снабжением',owner:'accounting',who:m,date:fmt(add(3))},
-    {name:'Подбор оборудования и инструментов (3 обоснованных предложения)',owner:'accounting',who:m,date:fmt(add(7))},
+    {name:'Выезд на объект: осмотр, знакомство с бригадами',owner:'mentor',who:m,date:fmt(add(2))},
+    {name:'Изучение технической документации ТехноНиколь (курсы learn.tn.ru)',owner:'mentor',who:m,date:fmt(add(7))},
+    {name:'Изучение регламента документооборота и работы со снабжением',owner:'mentor',who:m,date:fmt(add(3))},
+    {name:'Подбор оборудования и инструментов (3 обоснованных предложения)',owner:'mentor',who:m,date:fmt(add(7))},
     {name:'Изучение регламента по работе с бюджетом объекта',owner:'manager',who:manager,date:fmt(add(7))},
-    {name:'Формирование базы поставщиков материалов (мин. 10 поставщиков)',owner:'accounting',who:m,date:fmt(add(14))},
+    {name:'Формирование базы поставщиков материалов (мин. 10 поставщиков)',owner:'mentor',who:m,date:fmt(add(14))},
     {name:'Сбор резерва рабочих для бригады (5–6 человек)',owner:'hr',who:hr,date:fmt(add(21))},
-    {name:'Подписание акта приёмки-передачи основания на объекте',owner:'accounting',who:m,date:fmt(add(14))},
-    {name:'Составление календарного графика выполнения работ',owner:'accounting',who:m,date:fmt(add(18))},
-    {name:'Приёмка объёмов работ и расчёт зарплаты рабочим (с наставником)',owner:'accounting',who:m,date:fmt(add(18))},
-    {name:'Операционный контроль качества на объекте',owner:'accounting',who:m,date:fmt(add(21))},
-    {name:'Прохождение тестов по инструкциям и вебинарам ТехноНиколь',owner:'accounting',who:m,date:fmt(add(35))},
+    {name:'Подписание акта приёмки-передачи основания на объекте',owner:'mentor',who:m,date:fmt(add(14))},
+    {name:'Составление календарного графика выполнения работ',owner:'mentor',who:m,date:fmt(add(18))},
+    {name:'Приёмка объёмов работ и расчёт зарплаты рабочим (с наставником)',owner:'mentor',who:m,date:fmt(add(18))},
+    {name:'Операционный контроль качества на объекте',owner:'mentor',who:m,date:fmt(add(21))},
+    {name:'Прохождение тестов по инструкциям и вебинарам ТехноНиколь',owner:'mentor',who:m,date:fmt(add(35))},
     {name:'Промежуточная встреча с руководителем: оценка прогресса',owner:'manager',who:manager,date:fmt(add(42))},
     {name:'Итоговая оценка по результатам испытательного срока',owner:'hr',who:hr,date:fmt(add(49))},
   ];
@@ -521,7 +522,7 @@ function fmtRange(a,b) {
   return a.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+' – '+b.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
 }
 
-const PILL_MAP = { hr:'<span class="pill p-hr">HR</span>', manager:'<span class="pill p-manager">Руководитель</span>', it:'<span class="pill p-it">IT</span>', accounting:'<span class="pill p-accounting">Бухгалтерия</span>', office:'<span class="pill p-office">Офис-менеджер</span>' };
+const PILL_MAP = { hr:'<span class="pill p-hr">HR</span>', manager:'<span class="pill p-manager">Руководитель</span>', it:'<span class="pill p-it">IT</span>', accounting:'<span class="pill p-accounting">Бухгалтерия</span>', office:'<span class="pill p-office">Офис-менеджер</span>', mentor:'<span class="pill p-mentor">Наставник</span>' };
 
 const DEFAULT_DOCS = [
   { id:'d1', icon:'📄', name:'Учётная политика',          desc:'Принципы ведения бухучёта',     tag:'req', file:null, fileName:null },
@@ -541,6 +542,9 @@ const OWNER_OPTIONS = [
   { owner: 'manager',    who: 'Белов Александр',      label: 'Руководитель — Белов Александр' },
   { owner: 'accounting', who: 'Давыдова Юля',         label: 'Бухгалтерия — Давыдова Юля' },
   { owner: 'accounting', who: 'Бронникова Марина',    label: 'Бухгалтерия — Бронникова Марина' },
+  { owner: 'mentor',     who: 'Уткин Александр',      label: 'Наставник — Уткин Александр' },
+  { owner: 'mentor',     who: 'Зенков Александр',     label: 'Наставник — Зенков Александр' },
+  { owner: 'mentor',     who: 'Шмидт Светлана',       label: 'Наставник — Шмидт Светлана' },
   { owner: 'office',     who: 'Офис-менеджер',        label: 'Офис-менеджер' },
   { owner: 'it',         who: 'IT-отдел',             label: 'IT-отдел' },
 ];
@@ -615,6 +619,9 @@ function renderComments(emp) {
           <option value="Рябов Андрей">Рябов Андрей — директор</option>
           <option value="Белов Александр">Белов Александр — директор</option>
           <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+          <option value="Уткин Александр">Уткин Александр — старший прораб</option>
+          <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
+          <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
           <option value="Давыдова Юля">Давыдова Юля — наставник</option>
           <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
         </select>
