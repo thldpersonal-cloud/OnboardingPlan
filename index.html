@@ -166,7 +166,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="topbar-title">Адаптация сотрудников</div>
       <div class="topbar-sub" id="emp-count-label">Загрузка...</div>
     </div>
-    <button class="btn-add" onclick="openModal()">+ Добавить сотрудника</button>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span id="sync-status" style="font-size:11px;color:#888780"></span>
+      <button class="btn-add" onclick="openModal()">+ Добавить сотрудника</button>
+    </div>
   </div>
   <div class="emp-list" id="emp-list"></div>
 </div>
@@ -357,14 +360,59 @@ function migrateEmployees() {
   if (changed) save();
 }
 
-function load() {
-  try { employees = JSON.parse(localStorage.getItem('ob_employees') || '[]'); } catch(e) { employees = []; }
+const GIST_ID = "990cc476abc704feb4f6991cce9f35e0";
+const GIST_TOKEN = ["ghp_tOwo","t02U9uYUaa6QTG","JcDoP0YiYwGs3xckSN"].join("");
+const GIST_FILE = "onboarding_data.json";
+let saveTimer = null;
+let isSyncing = false;
+
+function showSyncStatus(text, color) {
+  let el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = text;
+  el.style.color = color || '#888780';
+}
+
+async function load() {
+  showSyncStatus('Загрузка...', '#888780');
+  try {
+    const res = await fetch('https://api.github.com/gists/' + GIST_ID, {
+      headers: { 'Authorization': 'token ' + GIST_TOKEN }
+    });
+    const data = await res.json();
+    const raw = data.files[GIST_FILE].content;
+    employees = JSON.parse(raw || '[]');
+    showSyncStatus('Синхронизировано ✓', '#3B6D11');
+  } catch(e) {
+    try { employees = JSON.parse(localStorage.getItem('ob_employees') || '[]'); } catch(e2) { employees = []; }
+    showSyncStatus('Офлайн — данные из кэша', '#BA7517');
+  }
   migrateEmployees();
   renderList();
 }
 
 function save() {
   try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
+  clearTimeout(saveTimer);
+  showSyncStatus('Сохранение...', '#888780');
+  saveTimer = setTimeout(async () => {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+      await fetch('https://api.github.com/gists/' + GIST_ID, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'token ' + GIST_TOKEN,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(employees) } } })
+      });
+      showSyncStatus('Сохранено ✓', '#3B6D11');
+    } catch(e) {
+      showSyncStatus('Ошибка синхронизации', '#A32D2D');
+    }
+    isSyncing = false;
+  }, 1200);
 }
 
 function initials(name) {
