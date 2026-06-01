@@ -586,14 +586,55 @@ const PEOPLE = [
 
 const OWNER_OPTIONS = PEOPLE;
 
+function getDynamicStageRanges(emp) {
+  // Split tasks evenly into 4 stages based on emp.stageSizes if set, else equal quarters
+  const n = emp.tasks.length;
+  if (emp.stageSizes && emp.stageSizes.reduce((a,b)=>a+b,0)===n) {
+    let ranges = [], cursor = 0;
+    emp.stageSizes.forEach(size => { ranges.push([cursor, cursor+size-1]); cursor+=size; });
+    return ranges;
+  }
+  // default: split into 4 roughly equal parts
+  const base = Math.floor(n/4), rem = n%4;
+  let ranges = [], cursor = 0;
+  for(let i=0;i<4;i++){ const size=base+(i<rem?1:0); ranges.push([cursor,cursor+size-1]); cursor+=size; }
+  emp.stageSizes = ranges.map(([a,b])=>b-a+1);
+  return ranges;
+}
+
+function addTask(si) {
+  const emp = employees.find(e=>e.id===currentId); if(!emp) return;
+  const ranges = getDynamicStageRanges(emp);
+  const [,b] = ranges[si];
+  const insertAt = b+1;
+  const firstTask = emp.tasks[ranges[si][0]];
+  emp.tasks.splice(insertAt, 0, {name:'Новая задача', owner: firstTask ? firstTask.owner : 'hr', who: firstTask ? firstTask.who : 'HR', date:'—'});
+  emp.checked.splice(insertAt, 0, false);
+  emp.stageSizes[si]++;
+  save(); renderDetailTasks(emp); updateDetailProgress(emp);
+  // auto-focus new task name
+  setTimeout(()=>{ const el=document.getElementById('tname-'+insertAt); if(el) el.click(); },50);
+}
+
+function deleteTask(i) {
+  const emp = employees.find(e=>e.id===currentId); if(!emp) return;
+  if(emp.tasks.length<=4) return; // min 1 per stage
+  const ranges = getDynamicStageRanges(emp);
+  const si = ranges.findIndex(([a,b])=>i>=a&&i<=b);
+  if(si>=0 && emp.stageSizes[si]<=1) { alert('В этапе должна быть хотя бы одна задача'); return; }
+  emp.tasks.splice(i,1);
+  emp.checked.splice(i,1);
+  if(si>=0) emp.stageSizes[si]--;
+  save(); renderDetailTasks(emp); updateDetailProgress(emp);
+}
+
 function renderDetailTasks(emp) {
   const container = document.getElementById('tab-plan');
   let html = '';
-  const _sr = getStageRanges(emp);
-  const _st = getStageTotals(emp);
-  _sr.forEach(([a,b],si) => {
+  const ranges = getDynamicStageRanges(emp);
+  ranges.forEach(([a,b],si) => {
+    const stotal = b-a+1;
     const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
-    const stotal = _st[si];
     let badgeCls, badgeText;
     if(sdone===stotal){badgeCls='badge-done';badgeText='Выполнено';}
     else if(sdone>0){badgeCls='badge-active';badgeText='В процессе';}
@@ -611,8 +652,10 @@ function renderDetailTasks(emp) {
           <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span><span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span></div>
         </div>
         <div class="task-date" id="tdate-${i}" onclick="editDate(${i})" title="Нажмите, чтобы изменить дату">${t.date}</div>
+        <div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>
       </div>`;
     }
+    html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
   });
   container.innerHTML = html;
@@ -910,26 +953,25 @@ function toggleTask(i) {
 }
 
 function updateDetailProgress(emp) {
-  const _total = getTotal(emp);
-  const _sr2 = getStageRanges(emp);
-  const _st2 = getStageTotals(emp);
+  const total = emp.tasks.length;
+  const ranges = getDynamicStageRanges(emp);
   const done = emp.checked.filter(Boolean).length;
-  const pct = Math.round(done / _total * 100);
+  const pct = total ? Math.round(done / total * 100) : 0;
   document.getElementById('d-pct').textContent = pct + '%';
   document.getElementById('d-pbar').style.width = pct + '%';
-  document.getElementById('d-pdetail').textContent = done + ' из ' + _total + ' задач';
-  _sr2.forEach(([a,b],si) => {
+  document.getElementById('d-pdetail').textContent = done + ' из ' + total + ' задач';
+  ranges.forEach(([a,b],si) => {
     const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
-    document.getElementById('ds'+(si+1)).textContent = sdone + '/' + _st2[si];
+    const el = document.getElementById('ds'+(si+1));
+    if(el) el.textContent = sdone + '/' + (b-a+1);
   });
 }
 
 function updateStageBadges(emp) {
-  const _sr = getStageRanges(emp);
-  const _st = getStageTotals(emp);
-  _sr.forEach(([a,b],si) => {
+  const ranges = getDynamicStageRanges(emp);
+  ranges.forEach(([a,b],si) => {
     const sdone = emp.checked.slice(a,b+1).filter(Boolean).length;
-    const stotal = _st[si];
+    const stotal = b-a+1;
     const badge = document.getElementById('dbadge-' + si);
     if (!badge) return;
     if(sdone===stotal){badge.textContent='Выполнено';badge.className='badge badge-done';}
