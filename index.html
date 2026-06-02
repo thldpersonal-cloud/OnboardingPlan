@@ -81,6 +81,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .p-manager { background: #E6F1FB; color: #185FA5; }
 .p-it { background: #FAEEDA; color: #854F0B; }
 .p-accounting { background: #EAF3DE; color: #3B6D11; }
+.p-chief { background: #FFF3CD; color: #7B5800; }
 .p-office { background: #FAECE7; color: #993C1D; }
 .p-mentor { background: #E1F5EE; color: #0F6E56; }
 .task-who { font-size: 11px; color: #888780; }
@@ -451,6 +452,12 @@ let currentId = null;
 function migrateEmployees() {
   let changed = false;
   employees.forEach(emp => {
+    // Fix Бронникова owner type
+    if (emp.tasks) emp.tasks.forEach(t => {
+      if (t.who === 'Бронникова Марина' && t.owner === 'accounting') {
+        t.owner = 'chief'; changed = true;
+      }
+    });
     emp.tasks.forEach(t => {
       if (t.name === 'Встреча с командой бухгалтерии, знакомство') {
         t.name = 'Встреча с командой, знакомство'; changed = true;
@@ -772,7 +779,7 @@ function fmtRange(a,b) {
   return a.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+' – '+b.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
 }
 
-const PILL_MAP = { hr:'<span class="pill p-hr">HR</span>', manager:'<span class="pill p-manager">Руководитель</span>', it:'<span class="pill p-it">IT</span>', accounting:'<span class="pill p-accounting">Бухгалтерия</span>', office:'<span class="pill p-office">Офис-менеджер</span>', mentor:'<span class="pill p-mentor">Наставник</span>' };
+const PILL_MAP = { hr:'<span class="pill p-hr">HR</span>', manager:'<span class="pill p-manager">Руководитель</span>', it:'<span class="pill p-it">IT</span>', accounting:'<span class="pill p-accounting">Бухгалтерия</span>', chief:'<span class="pill p-chief">Гл. бухгалтер</span>', office:'<span class="pill p-office">Офис-менеджер</span>', mentor:'<span class="pill p-mentor">Наставник</span>' };
 
 const DEFAULT_DOCS = [
   { id:'d1', icon:'📄', name:'Учётная политика',          desc:'Принципы ведения бухучёта',     tag:'req', file:null, fileName:null },
@@ -787,7 +794,7 @@ const DEFAULT_DOCS = [
 
 const PEOPLE = [
   { owner: 'hr',         who: 'Калугина Екатерина', label: 'Калугина Екатерина — HR' },
-  { owner: 'accounting', who: 'Бронникова Марина',  label: 'Бронникова Марина — главный бухгалтер' },
+  { owner: 'chief',      who: 'Бронникова Марина',  label: 'Бронникова Марина — главный бухгалтер' },
   { owner: 'manager',    who: 'Рябов Андрей',        label: 'Рябов Андрей — директор' },
   { owner: 'manager',    who: 'Белов Александр',     label: 'Белов Александр — директор' },
   { owner: 'accounting', who: 'Давыдова Юля',        label: 'Давыдова Юля — бухгалтер' },
