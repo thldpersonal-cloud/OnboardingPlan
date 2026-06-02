@@ -190,8 +190,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="auth-sub">Система управления планами адаптации</div>
     <div class="auth-tag">🔒 Вход для администратора</div>
     <div class="auth-error" id="auth-error">Неверный пароль</div>
-    <input class="auth-input" type="password" id="auth-pass" placeholder="Введите пароль" onkeydown="if(event.key==='Enter')doLogin()">
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Введите пароль" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="auth-btn" onclick="doLogin()">Войти</button>
+    <div style="margin-top:10px;font-size:11px;color:#b0afa8;text-align:center">Пароль: <b>admin2026</b></div>
   </div>
 </div>
 
