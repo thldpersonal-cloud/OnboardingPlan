@@ -188,7 +188,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="auth-card">
     <div class="auth-logo">Адаптация сотрудников</div>
     <div class="auth-sub">Система управления планами адаптации</div>
-    <div class="auth-tag">🔒 Вход для администратора</div>
+    <div style="margin-bottom:20px">
+      <div class="auth-tag">🔒 Вход для администратора</div>
+    </div>
     <div class="auth-error" id="auth-error">Неверный пароль</div>
     <input class="auth-input" type="password" id="auth-pass" placeholder="Введите пароль" autocomplete="new-password" onkeydown="if(event.key==='Enter')doLogin()">
     <button class="auth-btn" onclick="doLogin()">Войти</button>
@@ -218,8 +220,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div id="detail-view" class="detail">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <button class="back-btn" onclick="showList()" style="margin-bottom:0">← Все сотрудники</button>
-    <button class="btn-save" id="btn-save-detail" onclick="forceSave()" disabled style="font-size:12px;padding:6px 14px">Сохранено ✓</button>
-    <button class="btn-add" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn-save" id="btn-save-detail" onclick="forceSave()" disabled style="font-size:12px;padding:6px 14px">Сохранено ✓</button>
+      <button class="btn-add" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
+    </div>
   </div>
   <div class="header-card">
     <div style="display:flex;align-items:center;gap:14px">
@@ -269,10 +273,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <!-- SHARE MODAL -->
 <div class="modal-bg hidden" id="share-modal">
   <div class="modal" style="max-width:420px">
-    <h3>Ссылка для сотрудника</h3>
-    <p style="font-size:13px;color:#888780;margin:8px 0 4px">Отправьте эту ссылку сотруднику — он увидит только свой план</p>
-    <div class="share-wrap"><span class="share-url" id="share-url-text"></span><button class="btn-copy" onclick="copyShareLink()">Копировать</button></div>
-    <div style="margin-top:16px;text-align:right"><button class="btn-cancel" onclick="closeShareModal()">Закрыть</button></div>
+    <h3>Поделиться доступом</h3>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:#1a1a18;margin-bottom:6px">🔗 Ссылка для сотрудника</div>
+      <p style="font-size:12px;color:#888780;margin-bottom:6px">Видит только свой план, может отмечать задачи и писать комментарии</p>
+      <div class="share-wrap"><span class="share-url" id="share-url-text"></span><button class="btn-copy" id="btn-copy-emp" onclick="copyShareLink('emp')">Копировать</button></div>
+    </div>
+
+    <div style="border-top:0.5px solid #e0dfd8;padding-top:16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:500;color:#1a1a18;margin-bottom:6px">👔 Ссылка для руководителя</div>
+      <p style="font-size:12px;color:#888780;margin-bottom:6px">Видит всех сотрудников, может просматривать планы и писать комментарии</p>
+      <div class="share-wrap"><span class="share-url" id="share-url-manager"></span><button class="btn-copy" id="btn-copy-mgr" onclick="copyShareLink('manager')">Копировать</button></div>
+    </div>
+
+    <div style="text-align:right"><button class="btn-cancel" onclick="closeShareModal()">Закрыть</button></div>
   </div>
 </div>
 
@@ -300,27 +315,27 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="field"><label>Наставник</label>
       <select id="f-mentor">
         <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
-        <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+        <option value="Бронникова Марина">Бронникова Марина — главный бухгалтер</option>
         <option value="Рябов Андрей">Рябов Андрей — директор</option>
         <option value="Белов Александр">Белов Александр — директор</option>
         <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
         <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
         <option value="Уткин Александр">Уткин Александр — старший прораб</option>
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
-        <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
+        <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
       </select>
     </div>
     <div class="field"><label>Руководитель</label>
       <select id="f-manager">
         <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
-        <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
+        <option value="Бронникова Марина">Бронникова Марина — главный бухгалтер</option>
         <option value="Рябов Андрей">Рябов Андрей — директор</option>
         <option value="Белов Александр">Белов Александр — директор</option>
         <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
         <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
         <option value="Уткин Александр">Уткин Александр — старший прораб</option>
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
-        <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
+        <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
       </select>
     </div>
     <div class="field"><label>HR-менеджер</label><input id="f-hr" placeholder="Калугина Екатерина" value="Калугина Екатерина" /></div>
@@ -455,15 +470,20 @@ function migrateEmployees() {
 }
 
 /* ---- AUTH ---- */
-const ADMIN_PASS = 'admin2026'; // сменить пароль можно здесь
+const ADMIN_PASS    = 'admin2026';  // пароль администратора
+const MANAGER_PASS  = 'manager2026'; // пароль руководителя
 let isAdmin = false;
-let isEmployeeView = false; // true когда открыт по ?emp=ID ссылке
+let isManager = false;  // руководитель: просмотр всех + комментарии
+let isEmployeeView = false;
 let viewEmpId = null;
 let unsavedChanges = false;
 
 function checkInitialMode() {
   const params = new URLSearchParams(window.location.search);
   const empId = params.get('emp');
+  const roleParam = params.get('role');
+
+  // Ссылка для сотрудника (?emp=ID)
   if (empId) {
     isEmployeeView = true;
     viewEmpId = empId;
@@ -471,9 +491,21 @@ function checkInitialMode() {
     document.getElementById('app').style.display = '';
     return true;
   }
-  // Check session
-  if (sessionStorage.getItem('ob_admin') === '1') {
-    isAdmin = true;
+
+  // Ссылка для руководителя (?role=manager)
+  if (roleParam === 'manager') {
+    isManager = true;
+    sessionStorage.setItem('ob_role', 'manager');
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    return true;
+  }
+
+  // Проверяем сессию (после входа по паролю)
+  const savedRole = sessionStorage.getItem('ob_role');
+  if (savedRole === 'admin') { isAdmin = true; }
+  else if (savedRole === 'manager') { isManager = true; }
+  if (isAdmin || isManager) {
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     return true;
@@ -481,11 +513,34 @@ function checkInitialMode() {
   return false;
 }
 
+let authMode = 'admin'; // 'admin' or 'manager'
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  const isAdm = mode === 'admin';
+  document.getElementById('tab-admin-btn').style.cssText = isAdm
+    ? 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #1a1a18;background:#1a1a18;color:#fff;font-size:12px;cursor:pointer;font-weight:500'
+    : 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #e0dfd8;background:#fff;color:#888780;font-size:12px;cursor:pointer';
+  document.getElementById('tab-manager-btn').style.cssText = !isAdm
+    ? 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #534AB7;background:#534AB7;color:#fff;font-size:12px;cursor:pointer;font-weight:500'
+    : 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #e0dfd8;background:#fff;color:#888780;font-size:12px;cursor:pointer';
+  document.getElementById('auth-hint').innerHTML = isAdm
+    ? 'Пароль: <b>admin2026</b>'
+    : 'Пароль: <b>manager2026</b>';
+  document.getElementById('auth-pass').value = '';
+}
+
 function doLogin() {
   const val = document.getElementById('auth-pass').value;
-  if (val === ADMIN_PASS) {
+  if (authMode === 'admin' && val === ADMIN_PASS) {
     isAdmin = true;
-    sessionStorage.setItem('ob_admin', '1');
+    sessionStorage.setItem('ob_role', 'admin');
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    load();
+  } else if (authMode === 'manager' && val === MANAGER_PASS) {
+    isManager = true;
+    sessionStorage.setItem('ob_role', 'manager');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     load();
@@ -519,16 +574,19 @@ async function forceSave() {
 
 function openShareModal() {
   const emp = employees.find(e=>e.id===currentId); if(!emp) return;
-  const url = window.location.origin + window.location.pathname + '?emp=' + emp.id;
-  document.getElementById('share-url-text').textContent = url;
+  const base = window.location.origin + window.location.pathname;
+  document.getElementById('share-url-text').textContent = base + '?emp=' + emp.id;
+  document.getElementById('share-url-manager').textContent = base + '?role=manager';
   document.getElementById('share-modal').classList.remove('hidden');
 }
 function closeShareModal() { document.getElementById('share-modal').classList.add('hidden'); }
-function copyShareLink() {
-  const url = document.getElementById('share-url-text').textContent;
+function copyShareLink(type) {
+  const elId = type === 'manager' ? 'share-url-manager' : 'share-url-text';
+  const btnId = type === 'manager' ? 'btn-copy-mgr' : 'btn-copy-emp';
+  const url = document.getElementById(elId).textContent;
   navigator.clipboard.writeText(url).then(()=>{
-    const btn = document.querySelector('#share-modal .btn-copy');
-    btn.textContent = 'Скопировано!'; setTimeout(()=>btn.textContent='Копировать',2000);
+    const btn = document.getElementById(btnId);
+    btn.textContent = 'Скопировано ✓'; setTimeout(()=>btn.textContent='Копировать',2000);
   });
 }
 
@@ -582,8 +640,8 @@ function save() {
   try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
   // Mark as unsaved (needs manual save to cloud)
   if (isAdmin) markUnsaved();
-  // If employee view, auto-save their checkboxes/comments to cloud
-  if (isEmployeeView) saveToGist();
+  // Auto-save for employee and manager views
+  if (isEmployeeView || isManager) saveToGist();
 }
 
 async function saveToGist() {
@@ -664,6 +722,13 @@ function renderList() {
 
 function showDetail(id) {
   currentId = id;
+  // Show/hide admin-only controls based on role
+  setTimeout(() => {
+    const saveDetail = document.getElementById('btn-save-detail');
+    const shareBtn = document.querySelector('[onclick="openShareModal()"]');
+    if (saveDetail) saveDetail.style.display = isAdmin ? '' : 'none';
+    if (shareBtn) shareBtn.style.display = isAdmin ? '' : 'none';
+  }, 0);
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
   const idx = employees.indexOf(emp);
@@ -721,17 +786,15 @@ const DEFAULT_DOCS = [
 ];
 
 const PEOPLE = [
-  { owner: 'hr',      who: 'Калугина Екатерина',  label: 'Калугина Екатерина — HR' },
-  { owner: 'accounting', who: 'Бронникова Марина', label: 'Бронникова Марина — гл. бухгалтер' },
-  { owner: 'manager', who: 'Рябов Андрей',         label: 'Рябов Андрей — директор' },
-  { owner: 'manager', who: 'Белов Александр',      label: 'Белов Александр — директор' },
-  { owner: 'accounting', who: 'Давыдова Юля',      label: 'Давыдова Юля — бухгалтер' },
-  { owner: 'office',  who: 'Гаязова Наталья',      label: 'Гаязова Наталья — нач. отдела снабжения' },
-  { owner: 'mentor',  who: 'Уткин Александр',      label: 'Уткин Александр — старший прораб' },
-  { owner: 'mentor',  who: 'Зенков Александр',     label: 'Зенков Александр — нач. отдела ПТО' },
-  { owner: 'mentor',  who: 'Шмидт Светлана',       label: 'Шмидт Светлана — ассистент рук.' },
-  { owner: 'it',      who: 'IT-отдел',             label: 'IT-отдел' },
-  { owner: 'office',  who: 'Офис-менеджер',        label: 'Офис-менеджер' },
+  { owner: 'hr',         who: 'Калугина Екатерина', label: 'Калугина Екатерина — HR' },
+  { owner: 'accounting', who: 'Бронникова Марина',  label: 'Бронникова Марина — главный бухгалтер' },
+  { owner: 'manager',    who: 'Рябов Андрей',        label: 'Рябов Андрей — директор' },
+  { owner: 'manager',    who: 'Белов Александр',     label: 'Белов Александр — директор' },
+  { owner: 'accounting', who: 'Давыдова Юля',        label: 'Давыдова Юля — бухгалтер' },
+  { owner: 'office',     who: 'Гаязова Наталья',     label: 'Гаязова Наталья — нач. отдела снабжения' },
+  { owner: 'mentor',     who: 'Уткин Александр',     label: 'Уткин Александр — старший прораб' },
+  { owner: 'mentor',     who: 'Зенков Александр',    label: 'Зенков Александр — нач. отдела ПТО' },
+  { owner: 'mentor',     who: 'Шмидт Светлана',      label: 'Шмидт Светлана — ассистент руководителя' },
 ];
 
 const OWNER_OPTIONS = PEOPLE;
@@ -842,6 +905,26 @@ function buildCommentsList(comments) {
 
 function renderComments(emp) {
   const container = document.getElementById('tab-plan');
+
+  // Запоминаем текущий выбор автора (если уже выбран)
+  const prevAuthor = (document.getElementById('comment-author') || {}).value || '';
+
+  const COMMENT_PEOPLE = [
+    { value: 'Калугина Екатерина',  label: 'Калугина Екатерина — HR' },
+    { value: 'Бронникова Марина',   label: 'Бронникова Марина — главный бухгалтер' },
+    { value: 'Рябов Андрей',        label: 'Рябов Андрей — директор' },
+    { value: 'Белов Александр',     label: 'Белов Александр — директор' },
+    { value: 'Давыдова Юля',        label: 'Давыдова Юля — бухгалтер' },
+    { value: 'Гаязова Наталья',     label: 'Гаязова Наталья — нач. отдела снабжения' },
+    { value: 'Уткин Александр',     label: 'Уткин Александр — старший прораб' },
+    { value: 'Зенков Александр',    label: 'Зенков Александр — нач. отдела ПТО' },
+    { value: 'Шмидт Светлана',      label: 'Шмидт Светлана — ассистент руководителя' },
+  ];
+
+  const optionsHTML = COMMENT_PEOPLE.map(p =>
+    `<option value="${p.value}"${p.value === prevAuthor ? ' selected' : ''}>${p.label}</option>`
+  ).join('\n');
+
   const block = `<div class="comments-block" id="comments-block">
     <div class="comments-title"><span>💬</span> Заметки собственников</div>
     <div id="comments-list">${buildCommentsList(emp.comments)}</div>
@@ -849,15 +932,7 @@ function renderComments(emp) {
       <textarea id="comment-text" rows="3" placeholder="Оставьте заметку или комментарий по итогам адаптации..."></textarea>
       <div class="comment-form-row">
         <select class="comment-author-select" id="comment-author">
-          <option value="Калугина Екатерина">Калугина Екатерина — HR</option>
-          <option value="Бронникова Марина">Бронникова Марина — гл. бухгалтер</option>
-          <option value="Рябов Андрей">Рябов Андрей — директор</option>
-          <option value="Белов Александр">Белов Александр — директор</option>
-          <option value="Давыдова Юля">Давыдова Юля — бухгалтер</option>
-          <option value="Гаязова Наталья">Гаязова Наталья — нач. отдела снабжения</option>
-          <option value="Уткин Александр">Уткин Александр — старший прораб</option>
-          <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
-          <option value="Шмидт Светлана">Шмидт Светлана — ассистент рук.</option>
+          ${optionsHTML}
         </select>
         <button class="comment-submit" onclick="addComment()">Добавить</button>
       </div>
@@ -891,6 +966,7 @@ function deleteComment(ci) {
 }
 
 function editName(i) {
+  if (!isAdmin) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tname-' + i);
@@ -1026,6 +1102,7 @@ function attachFile(di, input) {
 }
 
 function editOwner(i) {
+  if (!isAdmin) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tmeta-' + i);
@@ -1058,6 +1135,7 @@ function editOwner(i) {
 }
 
 function editDate(i) {
+  if (!isAdmin) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tdate-' + i);
