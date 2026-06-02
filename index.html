@@ -158,16 +158,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .start-date-input { font-size: 12px; color: #1a1a18; border: 0.5px solid #888780; border-radius: 5px; padding: 1px 5px; background: #fff; outline: none; width: 110px; font-family: inherit; }
 
 /* AUTH SCREEN */
-.auth-screen { position:fixed; inset:0; background:#f5f4f0; display:flex; align-items:center; justify-content:center; z-index:1000; }
-.auth-card { background:#fff; border:0.5px solid #e0dfd8; border-radius:16px; padding:32px 28px; width:100%; max-width:360px; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
-.auth-logo { font-size:15px; font-weight:600; color:#1a1a18; margin-bottom:6px; }
-.auth-sub { font-size:12px; color:#888780; margin-bottom:24px; }
-.auth-input { width:100%; padding:10px 12px; border:0.5px solid #d0cfc8; border-radius:8px; font-size:14px; outline:none; background:#fafaf8; margin-bottom:10px; font-family:inherit; }
-.auth-input:focus { border-color:#534AB7; }
-.auth-btn { width:100%; padding:10px; background:#1a1a18; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer; margin-top:4px; }
-.auth-btn:hover { background:#333; }
-.auth-error { font-size:12px; color:#A32D2D; margin-bottom:8px; display:none; }
-.auth-tag { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 9px; border-radius:20px; background:#EAF3DE; color:#3B6D11; font-weight:500; margin-bottom:20px; }
 /* EMPLOYEE VIEW (for shared link) */
 .emp-view-header { background:#fff; border:0.5px solid #e0dfd8; border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
 /* SAVE BUTTON */
@@ -184,22 +174,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 </style>
 </head>
 <body>
-<!-- AUTH SCREEN -->
-<div class="auth-screen" id="auth-screen">
-  <div class="auth-card">
-    <div class="auth-logo">Адаптация сотрудников</div>
-    <div class="auth-sub">Система управления планами адаптации</div>
-    <div style="margin-bottom:20px">
-      <div class="auth-tag">🔒 Вход для администратора</div>
-    </div>
-    <div class="auth-error" id="auth-error">Неверный пароль</div>
-    <input class="auth-input" type="password" id="auth-pass" placeholder="Введите пароль" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="auth-btn" onclick="doLogin()">Войти</button>
-    <div style="margin-top:10px;font-size:11px;color:#b0afa8;text-align:center">Пароль: <b>admin2026</b></div>
-  </div>
-</div>
-
-<div class="app" id="app" style="display:none">
+<div class="app" id="app">
 
 <!-- LIST VIEW -->
 <div id="list-view">
@@ -210,7 +185,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div style="display:flex;align-items:center;gap:8px">
       <span id="sync-status" style="font-size:11px;color:#888780"></span>
-      <button class="btn-save" id="btn-save" onclick="forceSave()" disabled>Сохранено ✓</button>
+      <button class="btn-save" id="btn-save" onclick="forceSave()">Сохранено ✓</button>
       <button class="btn-add" id="btn-add-emp" onclick="openModal()">+ Добавить сотрудника</button>
     </div>
   </div>
@@ -274,18 +249,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <!-- SHARE MODAL -->
 <div class="modal-bg hidden" id="share-modal">
   <div class="modal" style="max-width:420px">
-    <h3>Поделиться доступом</h3>
+    <h3>Ссылка для сотрудника</h3>
 
     <div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:500;color:#1a1a18;margin-bottom:6px">🔗 Ссылка для сотрудника</div>
-      <p style="font-size:12px;color:#888780;margin-bottom:6px">Видит только свой план, может отмечать задачи и писать комментарии</p>
-      <div class="share-wrap"><span class="share-url" id="share-url-text"></span><button class="btn-copy" id="btn-copy-emp" onclick="copyShareLink('emp')">Копировать</button></div>
-    </div>
-
-    <div style="border-top:0.5px solid #e0dfd8;padding-top:16px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:500;color:#1a1a18;margin-bottom:6px">👔 Ссылка для руководителя</div>
-      <p style="font-size:12px;color:#888780;margin-bottom:6px">Видит всех сотрудников, может просматривать планы и писать комментарии</p>
-      <div class="share-wrap"><span class="share-url" id="share-url-manager"></span><button class="btn-copy" id="btn-copy-mgr" onclick="copyShareLink('manager')">Копировать</button></div>
+      <p style="font-size:12px;color:#888780;margin:8px 0 6px">Сотрудник увидит только свой план — может отмечать задачи и писать комментарии</p>
+      <div class="share-wrap"><span class="share-url" id="share-url-text"></span><button class="btn-copy" id="btn-copy-emp" onclick="copyShareLink()">Копировать</button></div>
     </div>
 
     <div style="text-align:right"><button class="btn-cancel" onclick="closeShareModal()">Закрыть</button></div>
@@ -477,8 +445,7 @@ function migrateEmployees() {
 }
 
 /* ---- AUTH ---- */
-const ADMIN_PASS = 'admin2026'; // пароль администратора
-let isAdmin = false;
+let isAdmin = true;   // всегда полный доступ
 let isManager = false;
 let isEmployeeView = false;
 let viewEmpId = null;
@@ -487,52 +454,15 @@ let unsavedChanges = false;
 function checkInitialMode() {
   const params = new URLSearchParams(window.location.search);
   const empId = params.get('emp');
-  const roleParam = params.get('role');
-
-  // Ссылка для сотрудника (?emp=ID)
   if (empId) {
+    isAdmin = false;
     isEmployeeView = true;
     viewEmpId = empId;
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    return true;
   }
-
-  // Ссылка для руководителя (?role=manager)
-  if (roleParam === 'manager') {
-    isManager = true;
-    sessionStorage.setItem('ob_role', 'manager');
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    return true;
-  }
-
-  // Проверяем сессию (после входа по паролю)
-  const savedRole = sessionStorage.getItem('ob_role');
-  if (savedRole === 'admin') { isAdmin = true; }
-  else if (savedRole === 'manager') { isManager = true; }
-  if (isAdmin || isManager) {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    return true;
-  }
-  return false;
+  return true;
 }
 
-function doLogin() {
-  const val = document.getElementById('auth-pass').value;
-  if (val === ADMIN_PASS) {
-    isAdmin = true;
-    sessionStorage.setItem('ob_role', 'admin');
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    load();
-  } else {
-    const err = document.getElementById('auth-error');
-    err.style.display = 'block';
-    setTimeout(()=>err.style.display='none', 2500);
-  }
-}
+
 
 function markUnsaved() {
   unsavedChanges = true;
@@ -551,6 +481,11 @@ function markSaved() {
 }
 
 async function forceSave() {
+  isSyncing = false; // сбрасываем флаг на случай зависания
+  ['btn-save','btn-save-detail'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = '⏳ Сохранение...'; btn.disabled = true; }
+  });
   await saveToGist();
   markSaved();
 }
@@ -559,16 +494,13 @@ function openShareModal() {
   const emp = employees.find(e=>e.id===currentId); if(!emp) return;
   const base = window.location.origin + window.location.pathname;
   document.getElementById('share-url-text').textContent = base + '?emp=' + emp.id;
-  document.getElementById('share-url-manager').textContent = base + '?role=manager';
   document.getElementById('share-modal').classList.remove('hidden');
 }
 function closeShareModal() { document.getElementById('share-modal').classList.add('hidden'); }
-function copyShareLink(type) {
-  const elId = type === 'manager' ? 'share-url-manager' : 'share-url-text';
-  const btnId = type === 'manager' ? 'btn-copy-mgr' : 'btn-copy-emp';
-  const url = document.getElementById(elId).textContent;
+function copyShareLink() {
+  const url = document.getElementById('share-url-text').textContent;
   navigator.clipboard.writeText(url).then(()=>{
-    const btn = document.getElementById(btnId);
+    const btn = document.getElementById('btn-copy-emp');
     btn.textContent = 'Скопировано ✓'; setTimeout(()=>btn.textContent='Копировать',2000);
   });
 }
@@ -628,11 +560,10 @@ function save() {
 }
 
 async function saveToGist() {
-  if (isSyncing) return;
   isSyncing = true;
   showSyncStatus('Сохранение...', '#888780');
   try {
-    await fetch('https://api.github.com/gists/' + GIST_ID, {
+    const resp = await fetch('https://api.github.com/gists/' + GIST_ID, {
       method: 'PATCH',
       headers: {
         'Authorization': 'token ' + GIST_TOKEN,
@@ -640,11 +571,16 @@ async function saveToGist() {
       },
       body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(employees) } } })
     });
-    showSyncStatus('Синхронизировано ✓', '#3B6D11');
+    if (resp.ok) {
+      showSyncStatus('Синхронизировано ✓', '#3B6D11');
+    } else {
+      showSyncStatus('Ошибка ' + resp.status, '#A32D2D');
+    }
   } catch(e) {
     showSyncStatus('Ошибка синхронизации', '#A32D2D');
+  } finally {
+    isSyncing = false;
   }
-  isSyncing = false;
 }
 
 function initials(name) {
@@ -940,9 +876,12 @@ function addComment() {
   const date = now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
   if (!emp.comments) emp.comments = [];
   emp.comments.push({ author, text, date });
-  save();
+  try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
   document.getElementById('comment-text').value = '';
   document.getElementById('comments-list').innerHTML = buildCommentsList(emp.comments);
+  // Комментарии сохраняются сразу в облако для всех ролей
+  isSyncing = false;
+  saveToGist().then(() => { if (isAdmin) markSaved(); });
 }
 
 function deleteComment(ci) {
@@ -1301,7 +1240,10 @@ function editStartDate() {
 // set today as default date on load
 document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
 
-load();
+// Проверяем режим входа (ссылка сотрудника, руководителя или пароль)
+if (checkInitialMode()) {
+  load();
+}
 </script>
 </body>
 </html>
