@@ -226,6 +226,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tabs">
       <button class="tab active" onclick="switchTab('plan',this)">Задачи</button>
       <button class="tab" onclick="switchTab('docs',this)">Документы</button>
+      <button class="tab" onclick="switchTab('tests',this)">Тестирование</button>
+      <button class="tab" onclick="switchTab('career',this)">Карьерный трек</button>
     </div>
     <div class="role-toggle" id="role-toggle">
       <span>Роль:</span>
@@ -241,6 +243,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     </div>
     <div class="docs-grid" id="docs-grid"></div>
   </div>
+  <div id="tab-tests" class="hidden"></div>
+  <div id="tab-career" class="hidden"></div>
   <div class="updated-hint" id="d-updated"></div>
 </div>
 
@@ -669,7 +673,9 @@ function showDetail(id) {
   renderDetailTasks(emp);
   updateDetailProgress(emp);
   document.getElementById('tab-plan').style.display = '';
-  document.getElementById('tab-docs').classList.add('hidden');
+  ['docs','tests','career'].forEach(t => document.getElementById('tab-'+t).classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.tab').classList.add('active');
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab')[0].classList.add('active');
   setRole('all', document.querySelector('.rbtn'));
@@ -1136,13 +1142,168 @@ function updateStageBadges(emp) {
   });
 }
 
+/* ===== ТЕСТИРОВАНИЕ ===== */
+function renderTests() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  if (!emp.tests) emp.tests = [];
+  const container = document.getElementById('tab-tests');
+
+  const scoreClass = s => s >= 80 ? 'good' : s >= 60 ? 'ok' : 'bad';
+  const testCards = emp.tests.length
+    ? emp.tests.map((t, i) => `
+      <div class="test-card">
+        <div class="test-card-header">
+          <div>
+            <div class="test-name">${t.name}</div>
+            <div class="test-meta">${t.date} · ${t.who || ''}</div>
+            ${t.comment ? `<div class="test-comment">${t.comment}</div>` : ''}
+          </div>
+          <div style="text-align:right">
+            <div class="test-score ${scoreClass(+t.score)}">${t.score}%</div>
+            ${isAdmin ? `<button onclick="deleteTest(${i})" style="font-size:11px;color:#A32D2D;background:none;border:none;cursor:pointer;margin-top:4px">удалить</button>` : ''}
+          </div>
+        </div>
+      </div>`).join('')
+    : '<div class="career-empty">Результатов тестирования пока нет</div>';
+
+  container.innerHTML = `
+    ${isAdmin ? `<button class="btn-add-test" onclick="showTestForm()">+ Добавить результат</button>` : ''}
+    <div id="test-form-wrap"></div>
+    ${testCards}`;
+}
+
+function showTestForm() {
+  const today = new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('test-form-wrap').innerHTML = `
+    <div class="test-form">
+      <input id="tf-name" placeholder="Название теста / аттестации" />
+      <div class="row2">
+        <input id="tf-score" type="number" min="0" max="100" placeholder="Результат, %" />
+        <input id="tf-date" placeholder="Дата" value="${today}" />
+      </div>
+      <input id="tf-who" placeholder="Кто проводил" />
+      <textarea id="tf-comment" rows="2" placeholder="Комментарий (необязательно)"></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="document.getElementById('test-form-wrap').innerHTML=''" style="padding:6px 14px;border:0.5px solid #d0cfc8;border-radius:8px;background:#fff;cursor:pointer;font-size:13px">Отмена</button>
+        <button onclick="saveTest()" style="padding:6px 14px;background:#1a1a18;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px">Сохранить</button>
+      </div>
+    </div>`;
+}
+
+function saveTest() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  if (!emp.tests) emp.tests = [];
+  const name = document.getElementById('tf-name').value.trim();
+  const score = document.getElementById('tf-score').value;
+  const date = document.getElementById('tf-date').value.trim();
+  if (!name || !score) return;
+  emp.tests.unshift({ name, score, date, who: document.getElementById('tf-who').value.trim(), comment: document.getElementById('tf-comment').value.trim() });
+  save(); renderTests();
+}
+
+function deleteTest(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  emp.tests.splice(i, 1);
+  save(); renderTests();
+}
+
+/* ===== КАРЬЕРНЫЙ ТРЕК ===== */
+const CAREER_PERIODS = [
+  { key: 'p1m', label: '1 месяц',  color: '#E6F1FB', textColor: '#185FA5' },
+  { key: 'p3m', label: '3 месяца', color: '#EAF3DE', textColor: '#3B6D11' },
+  { key: 'p6m', label: '6 месяцев',color: '#FAEEDA', textColor: '#854F0B' },
+  { key: 'p1y', label: '1 год',    color: '#EEEDFE', textColor: '#534AB7' },
+];
+
+function renderCareer() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  if (!emp.career) emp.career = { p1m:[], p3m:[], p6m:[], p1y:[] };
+  const container = document.getElementById('tab-career');
+
+  const periods = CAREER_PERIODS.map(p => {
+    const goals = emp.career[p.key] || [];
+    const done = goals.filter(g => g.done).length;
+    const goalsHTML = goals.map((g, gi) => `
+      <div class="career-goal">
+        <div class="career-goal-check ${g.done ? 'done' : ''}" onclick="toggleGoal('${p.key}',${gi})">
+          ${g.done ? '✓' : ''}
+        </div>
+        <div class="career-goal-text ${g.done ? 'struck' : ''}" 
+          ${isAdmin ? `onclick="editGoal('${p.key}',${gi},this)"` : ''}>${g.text}</div>
+        ${isAdmin ? `<button onclick="deleteGoal('${p.key}',${gi})" style="font-size:14px;color:#d0cfc8;background:none;border:none;cursor:pointer;flex-shrink:0;padding:0 2px">×</button>` : ''}
+      </div>`).join('');
+
+    return `
+      <div class="career-period">
+        <div class="career-period-header">
+          <div class="career-period-title">Цели на ${p.label}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            ${goals.length ? `<span style="font-size:12px;color:#888780">${done}/${goals.length}</span>` : ''}
+            <span class="career-period-label" style="background:${p.color};color:${p.textColor}">${p.label}</span>
+          </div>
+        </div>
+        ${goalsHTML}
+        ${goals.length === 0 ? `<div style="font-size:12px;color:#b0afa8;padding:4px 0">Целей пока нет</div>` : ''}
+        ${isAdmin ? `<button class="btn-add-goal" onclick="addGoal('${p.key}')">+ Добавить цель</button>` : ''}
+      </div>`;
+  }).join('');
+
+  container.innerHTML = periods;
+}
+
+function addGoal(period) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  if (!emp.career) emp.career = { p1m:[], p3m:[], p6m:[], p1y:[] };
+  emp.career[period].push({ text: 'Новая цель', done: false });
+  save(); renderCareer();
+  // auto-focus last added
+  setTimeout(() => {
+    const goals = document.querySelectorAll('.career-goal-text');
+    const last = goals[goals.length - 1];
+    if (last && isAdmin) editGoal(period, emp.career[period].length - 1, last);
+  }, 30);
+}
+
+function toggleGoal(period, gi) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  emp.career[period][gi].done = !emp.career[period][gi].done;
+  save(); renderCareer();
+}
+
+function deleteGoal(period, gi) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  emp.career[period].splice(gi, 1);
+  save(); renderCareer();
+}
+
+function editGoal(period, gi, el) {
+  if (!isAdmin) return;
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const current = emp.career[period][gi].text;
+  const input = document.createElement('input');
+  input.value = current;
+  input.style.cssText = 'flex:1;border:0.5px solid #534AB7;border-radius:6px;padding:2px 6px;font-size:13px;outline:none;font-family:inherit';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  function apply() {
+    const val = input.value.trim() || current;
+    emp.career[period][gi].text = val;
+    save(); renderCareer();
+  }
+  input.addEventListener('blur', apply);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = current; input.blur(); } });
+}
+
 function switchTab(name, el) {
-  document.getElementById('tab-plan').classList.toggle('hidden', name !== 'plan');
-  document.getElementById('tab-docs').classList.toggle('hidden', name !== 'docs');
+  ['plan','docs','tests','career'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', name !== t);
+  });
   document.getElementById('role-toggle').style.display = name === 'plan' ? 'flex' : 'none';
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   if (name === 'docs') renderDocs();
+  if (name === 'tests') renderTests();
+  if (name === 'career') renderCareer();
 }
 
 function setRole(role, el) {
