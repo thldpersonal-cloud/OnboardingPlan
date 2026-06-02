@@ -613,6 +613,34 @@ function currentStageLabel(emp) {
   return {text:'Адаптирован',cls:'s-done'};
 }
 
+function editEmpName(id) {
+  if (!isAdmin) return;
+  const emp = employees.find(e => e.id === id); if (!emp) return;
+  const el = document.getElementById('ename-' + id); if (!el) return;
+  const current = emp.name;
+  const input = document.createElement('input');
+  input.value = current;
+  input.style.cssText = 'font-size:14px;font-weight:500;color:#1a1a18;border:none;border-bottom:1.5px solid #534AB7;outline:none;background:transparent;width:100%;font-family:inherit;padding:0';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  function apply() {
+    const val = input.value.trim() || current;
+    emp.name = val;
+    save();
+    renderList();
+    // update detail header if open
+    const dname = document.getElementById('d-name');
+    if (dname && currentId === id) dname.textContent = val;
+    const av = document.getElementById('d-avatar');
+    if (av && currentId === id) av.textContent = initials(val);
+  }
+  input.addEventListener('blur', apply);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.value = current; input.blur(); }
+  });
+}
+
 function renderList() {
   const el = document.getElementById('emp-list');
   const label = document.getElementById('emp-count-label');
@@ -631,7 +659,7 @@ function renderList() {
     return `<div class="emp-card" onclick="showDetail('${emp.id}')">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${initials(emp.name)}</div>
       <div class="emp-info">
-        <div class="emp-name">${emp.name}</div>
+        <div class="emp-name" id="ename-${emp.id}" onclick="event.stopPropagation();editEmpName('${emp.id}')" title="Нажмите, чтобы изменить имя" style="cursor:text">${emp.name}</div>
         <div class="emp-meta">${emp.role} · с ${emp.startDisplay}</div>
         <span class="emp-stage-badge ${stage.cls}">${stage.text}</span>
       </div>
