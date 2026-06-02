@@ -155,10 +155,47 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .start-date-editable { cursor: pointer; border-bottom: 1px dashed #c8c7c0; transition: border-color 0.15s; }
 .start-date-editable:hover { border-color: #534AB7; color: #534AB7; }
 .start-date-input { font-size: 12px; color: #1a1a18; border: 0.5px solid #888780; border-radius: 5px; padding: 1px 5px; background: #fff; outline: none; width: 110px; font-family: inherit; }
+
+/* AUTH SCREEN */
+.auth-screen { position:fixed; inset:0; background:#f5f4f0; display:flex; align-items:center; justify-content:center; z-index:1000; }
+.auth-card { background:#fff; border:0.5px solid #e0dfd8; border-radius:16px; padding:32px 28px; width:100%; max-width:360px; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+.auth-logo { font-size:15px; font-weight:600; color:#1a1a18; margin-bottom:6px; }
+.auth-sub { font-size:12px; color:#888780; margin-bottom:24px; }
+.auth-input { width:100%; padding:10px 12px; border:0.5px solid #d0cfc8; border-radius:8px; font-size:14px; outline:none; background:#fafaf8; margin-bottom:10px; font-family:inherit; }
+.auth-input:focus { border-color:#534AB7; }
+.auth-btn { width:100%; padding:10px; background:#1a1a18; color:#fff; border:none; border-radius:8px; font-size:14px; font-weight:500; cursor:pointer; margin-top:4px; }
+.auth-btn:hover { background:#333; }
+.auth-error { font-size:12px; color:#A32D2D; margin-bottom:8px; display:none; }
+.auth-tag { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 9px; border-radius:20px; background:#EAF3DE; color:#3B6D11; font-weight:500; margin-bottom:20px; }
+/* EMPLOYEE VIEW (for shared link) */
+.emp-view-header { background:#fff; border:0.5px solid #e0dfd8; border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+/* SAVE BUTTON */
+.btn-save { display:flex; align-items:center; gap:6px; padding:8px 16px; background:#1D9E75; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; transition:background 0.15s; }
+.btn-save:hover { background:#178a63; }
+.btn-save:disabled { background:#a8d5c5; cursor:default; }
+.btn-save.unsaved { background:#534AB7; animation: pulse-save 1.5s infinite; }
+@keyframes pulse-save { 0%,100%{opacity:1} 50%{opacity:0.8} }
+/* SHARE LINK */
+.share-wrap { display:flex; align-items:center; gap:8px; background:#f5f4f0; border:0.5px solid #e0dfd8; border-radius:8px; padding:8px 12px; margin-top:12px; }
+.share-url { font-size:11px; color:#534AB7; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.btn-copy { font-size:11px; padding:3px 10px; border:0.5px solid #534AB7; border-radius:6px; background:#fff; color:#534AB7; cursor:pointer; white-space:nowrap; }
+.btn-copy:hover { background:#EEEDFE; }
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">Адаптация сотрудников</div>
+    <div class="auth-sub">Система управления планами адаптации</div>
+    <div class="auth-tag">🔒 Вход для администратора</div>
+    <div class="auth-error" id="auth-error">Неверный пароль</div>
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Введите пароль" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="auth-btn" onclick="doLogin()">Войти</button>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
 
 <!-- LIST VIEW -->
 <div id="list-view">
@@ -167,9 +204,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <div class="topbar-title">Адаптация сотрудников</div>
       <div class="topbar-sub" id="emp-count-label">Загрузка...</div>
     </div>
-    <div style="display:flex;align-items:center;gap:12px">
+    <div style="display:flex;align-items:center;gap:8px">
       <span id="sync-status" style="font-size:11px;color:#888780"></span>
-      <button class="btn-add" onclick="openModal()">+ Добавить сотрудника</button>
+      <button class="btn-save" id="btn-save" onclick="forceSave()" disabled>Сохранено ✓</button>
+      <button class="btn-add" id="btn-add-emp" onclick="openModal()">+ Добавить сотрудника</button>
     </div>
   </div>
   <div class="emp-list" id="emp-list"></div>
@@ -177,7 +215,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 
 <!-- DETAIL VIEW -->
 <div id="detail-view" class="detail">
-  <button class="back-btn" onclick="showList()">← Все сотрудники</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <button class="back-btn" onclick="showList()" style="margin-bottom:0">← Все сотрудники</button>
+    <button class="btn-save" id="btn-save-detail" onclick="forceSave()" disabled style="font-size:12px;padding:6px 14px">Сохранено ✓</button>
+    <button class="btn-add" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
+  </div>
   <div class="header-card">
     <div style="display:flex;align-items:center;gap:14px">
       <div class="avatar" id="d-avatar" style="width:48px;height:48px;font-size:15px"></div>
@@ -221,6 +263,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div class="updated-hint" id="d-updated"></div>
 </div>
 
+</div>
+
+<!-- SHARE MODAL -->
+<div class="modal-bg hidden" id="share-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>Ссылка для сотрудника</h3>
+    <p style="font-size:13px;color:#888780;margin:8px 0 4px">Отправьте эту ссылку сотруднику — он увидит только свой план</p>
+    <div class="share-wrap"><span class="share-url" id="share-url-text"></span><button class="btn-copy" onclick="copyShareLink()">Копировать</button></div>
+    <div style="margin-top:16px;text-align:right"><button class="btn-cancel" onclick="closeShareModal()">Закрыть</button></div>
+  </div>
 </div>
 
 <!-- ADD FORM -->
@@ -401,6 +453,84 @@ function migrateEmployees() {
   if (changed) save();
 }
 
+/* ---- AUTH ---- */
+const ADMIN_PASS = 'admin2026'; // сменить пароль можно здесь
+let isAdmin = false;
+let isEmployeeView = false; // true когда открыт по ?emp=ID ссылке
+let viewEmpId = null;
+let unsavedChanges = false;
+
+function checkInitialMode() {
+  const params = new URLSearchParams(window.location.search);
+  const empId = params.get('emp');
+  if (empId) {
+    isEmployeeView = true;
+    viewEmpId = empId;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    return true;
+  }
+  // Check session
+  if (sessionStorage.getItem('ob_admin') === '1') {
+    isAdmin = true;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    return true;
+  }
+  return false;
+}
+
+function doLogin() {
+  const val = document.getElementById('auth-pass').value;
+  if (val === ADMIN_PASS) {
+    isAdmin = true;
+    sessionStorage.setItem('ob_admin', '1');
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    load();
+  } else {
+    const err = document.getElementById('auth-error');
+    err.style.display = 'block';
+    setTimeout(()=>err.style.display='none', 2500);
+  }
+}
+
+function markUnsaved() {
+  unsavedChanges = true;
+  ['btn-save','btn-save-detail'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = '💾 Сохранить'; btn.disabled = false; btn.classList.add('unsaved'); }
+  });
+}
+
+function markSaved() {
+  unsavedChanges = false;
+  ['btn-save','btn-save-detail'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = 'Сохранено ✓'; btn.disabled = true; btn.classList.remove('unsaved'); }
+  });
+}
+
+async function forceSave() {
+  await saveToGist();
+  markSaved();
+}
+
+function openShareModal() {
+  const emp = employees.find(e=>e.id===currentId); if(!emp) return;
+  const url = window.location.origin + window.location.pathname + '?emp=' + emp.id;
+  document.getElementById('share-url-text').textContent = url;
+  document.getElementById('share-modal').classList.remove('hidden');
+}
+function closeShareModal() { document.getElementById('share-modal').classList.add('hidden'); }
+function copyShareLink() {
+  const url = document.getElementById('share-url-text').textContent;
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn = document.querySelector('#share-modal .btn-copy');
+    btn.textContent = 'Скопировано!'; setTimeout(()=>btn.textContent='Копировать',2000);
+  });
+}
+
 const GIST_ID = "990cc476abc704feb4f6991cce9f35e0";
 const GIST_TOKEN = ["ghp_tOwo","t02U9uYUaa6QTG","JcDoP0YiYwGs3xckSN"].join("");
 const GIST_FILE = "onboarding_data.json";
@@ -429,31 +559,50 @@ async function load() {
     showSyncStatus('Офлайн — данные из кэша', '#BA7517');
   }
   migrateEmployees();
-  renderList();
+  if (isEmployeeView && viewEmpId) {
+    // Show only the specific employee's plan
+    const emp = employees.find(e => e.id === viewEmpId);
+    if (emp) {
+      showDetail(emp.id);
+      // Hide back button and add button for employee view
+      document.querySelector('.back-btn') && (document.querySelector('.back-btn').style.display = 'none');
+      document.getElementById('btn-save-detail') && (document.getElementById('btn-save-detail').style.display = 'none');
+      document.querySelector('[onclick="openShareModal()"]') && (document.querySelector('[onclick="openShareModal()"]').style.display = 'none');
+    } else {
+      document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px 20px;color:#888780"><div style="font-size:32px;margin-bottom:12px">🔍</div><div>План адаптации не найден.<br>Обратитесь к HR-менеджеру.</div></div>';
+    }
+  } else {
+    renderList();
+  }
 }
 
 function save() {
+  // Save to localStorage immediately
   try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
-  clearTimeout(saveTimer);
+  // Mark as unsaved (needs manual save to cloud)
+  if (isAdmin) markUnsaved();
+  // If employee view, auto-save their checkboxes/comments to cloud
+  if (isEmployeeView) saveToGist();
+}
+
+async function saveToGist() {
+  if (isSyncing) return;
+  isSyncing = true;
   showSyncStatus('Сохранение...', '#888780');
-  saveTimer = setTimeout(async () => {
-    if (isSyncing) return;
-    isSyncing = true;
-    try {
-      await fetch('https://api.github.com/gists/' + GIST_ID, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': 'token ' + GIST_TOKEN,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(employees) } } })
-      });
-      showSyncStatus('Сохранено ✓', '#3B6D11');
-    } catch(e) {
-      showSyncStatus('Ошибка синхронизации', '#A32D2D');
-    }
-    isSyncing = false;
-  }, 1200);
+  try {
+    await fetch('https://api.github.com/gists/' + GIST_ID, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'token ' + GIST_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(employees) } } })
+    });
+    showSyncStatus('Синхронизировано ✓', '#3B6D11');
+  } catch(e) {
+    showSyncStatus('Ошибка синхронизации', '#A32D2D');
+  }
+  isSyncing = false;
 }
 
 function initials(name) {
@@ -648,14 +797,14 @@ function renderDetailTasks(emp) {
       html += `<div class="task ${doneClass}" id="dtask-${i}" data-owner="${t.owner}">
         <div class="check ${checkDone}" onclick="toggleTask(${i})">✓</div>
         <div class="task-body">
-          <div class="task-name ${struckClass}" id="tname-${i}" onclick="editName(${i})" title="Нажмите, чтобы изменить">${t.name}</div>
-          <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span><span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span></div>
+          <div class="task-name ${struckClass}" id="tname-${i}" ${isAdmin ? `onclick="editName(${i})" title="Нажмите, чтобы изменить"` : ''}>${t.name}</div>
+          <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span>${isAdmin ? '<span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span>' : ''}</div>
         </div>
-        <div class="task-date" id="tdate-${i}" onclick="editDate(${i})" title="Нажмите, чтобы изменить дату">${t.date}</div>
-        <div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>
+        <div class="task-date" id="tdate-${i}" ${isAdmin ? `onclick="editDate(${i})" title="Нажмите, чтобы изменить дату"` : ''}>${t.date}</div>
+        ${isAdmin ? `<div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>` : ''}
       </div>`;
     }
-    html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
+    if (isAdmin) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
   });
   container.innerHTML = html;
