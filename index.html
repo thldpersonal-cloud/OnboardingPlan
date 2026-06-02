@@ -222,8 +222,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <button class="back-btn" onclick="showList()" style="margin-bottom:0">← Все сотрудники</button>
     <div style="display:flex;gap:8px">
-      <button class="btn-save" id="btn-save-detail" onclick="forceSave()" disabled style="font-size:12px;padding:6px 14px">Сохранено ✓</button>
-      <button class="btn-add" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
+      <button class="btn-save" id="btn-save-detail" onclick="forceSave()" style="font-size:12px;padding:6px 14px">💾 Сохранить</button>
+      <button class="btn-add" id="btn-share" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
     </div>
   </div>
   <div class="header-card">
@@ -538,7 +538,7 @@ function markUnsaved() {
   unsavedChanges = true;
   ['btn-save','btn-save-detail'].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) { btn.textContent = '💾 Сохранить'; btn.disabled = false; btn.classList.add('unsaved'); }
+    if (btn) { btn.textContent = '💾 Сохранить'; btn.disabled = false; btn.classList.add('unsaved'); btn.style.background='#534AB7'; }
   });
 }
 
@@ -546,7 +546,7 @@ function markSaved() {
   unsavedChanges = false;
   ['btn-save','btn-save-detail'].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) { btn.textContent = 'Сохранено ✓'; btn.disabled = true; btn.classList.remove('unsaved'); }
+    if (btn) { btn.textContent = 'Сохранено ✓'; btn.disabled = false; btn.classList.remove('unsaved'); btn.style.background='#1D9E75'; }
   });
 }
 
@@ -708,9 +708,11 @@ function showDetail(id) {
   // Show/hide admin-only controls based on role
   setTimeout(() => {
     const saveDetail = document.getElementById('btn-save-detail');
-    const shareBtn = document.querySelector('[onclick="openShareModal()"]');
+    const shareBtn = document.getElementById('btn-share');
     if (saveDetail) saveDetail.style.display = isAdmin ? '' : 'none';
     if (shareBtn) shareBtn.style.display = isAdmin ? '' : 'none';
+    // Init save button state
+    if (saveDetail && isAdmin) { saveDetail.textContent = 'Сохранено ✓'; saveDetail.style.background='#1D9E75'; }
   }, 0);
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
@@ -886,11 +888,15 @@ function buildCommentsList(comments) {
   }).join('');
 }
 
+let _lastCommentAuthor = '';
+
 function renderComments(emp) {
   const container = document.getElementById('tab-plan');
 
-  // Запоминаем текущий выбор автора (если уже выбран)
-  const prevAuthor = (document.getElementById('comment-author') || {}).value || '';
+  // Запоминаем текущий выбор автора
+  const sel = document.getElementById('comment-author');
+  if (sel && sel.value) _lastCommentAuthor = sel.value;
+  const prevAuthor = _lastCommentAuthor;
 
   const COMMENT_PEOPLE = [
     { value: 'Калугина Екатерина',  label: 'Калугина Екатерина — HR' },
@@ -914,7 +920,7 @@ function renderComments(emp) {
     <div class="comment-form">
       <textarea id="comment-text" rows="3" placeholder="Оставьте заметку или комментарий по итогам адаптации..."></textarea>
       <div class="comment-form-row">
-        <select class="comment-author-select" id="comment-author">
+        <select class="comment-author-select" id="comment-author" onchange="_lastCommentAuthor=this.value">
           ${optionsHTML}
         </select>
         <button class="comment-submit" onclick="addComment()">Добавить</button>
