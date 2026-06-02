@@ -296,6 +296,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="Уткин Александр">Уткин Александр — старший прораб</option>
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
         <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
+        <option value="Черепанова Лиля">Черепанова Лиля — офис-менеджер</option>
       </select>
     </div>
     <div class="field"><label>Руководитель</label>
@@ -309,6 +310,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="Уткин Александр">Уткин Александр — старший прораб</option>
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
         <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
+        <option value="Черепанова Лиля">Черепанова Лиля — офис-менеджер</option>
       </select>
     </div>
     <div class="field"><label>HR-менеджер</label><input id="f-hr" placeholder="Калугина Екатерина" value="Калугина Екатерина" /></div>
@@ -793,7 +795,14 @@ function renderDetailTasks(emp) {
         </div>
         <div class="task-date" id="tdate-${i}" ${isAdmin ? `onclick="editDate(${i})" title="Нажмите, чтобы изменить дату"` : ''}>${t.date}</div>
         ${isAdmin ? `<div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>` : ''}
-      </div>`;
+      </div>
+      ${(isAdmin || isManager) ? `
+      <div class="task-note-wrap">
+        ${t.note
+          ? `<div class="task-note-text" onclick="editTaskNote(${i})" title="Нажмите, чтобы изменить">💬 ${t.note}</div>`
+          : `<input class="task-note-input" placeholder="Добавить комментарий к задаче..." value="" onblur="saveTaskNote(${i},this.value)" onkeydown="if(event.key==='Enter'){this.blur()}">`
+        }
+      </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text">💬 ${t.note}</div></div>` : '')}`;
     }
     if (isAdmin) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
@@ -813,7 +822,7 @@ const OWNER_COLORS = {
   'Шмидт Светлана':    {bg:'#FAEEDA',color:'#854F0B'},
 };
 
-function buildCommentsList(comments) {
+function buildCommentsList(comments, block) {
   if (!comments || comments.length === 0) return '<div class="no-comments">Комментариев пока нет</div>';
   return comments.map((c, idx) => {
     const cl = OWNER_COLORS[c.author] || {bg:'#f1efe8',color:'#888780'};
@@ -823,7 +832,7 @@ function buildCommentsList(comments) {
         <div class="comment-avatar" style="background:${cl.bg};color:${cl.color}">${init}</div>
         <span class="comment-author">${c.author}</span>
         <span class="comment-date">${c.date}</span>
-        <button class="comment-delete" onclick="deleteComment(${idx})" title="Удалить">✕</button>
+        ${isAdmin ? `<button class="comment-delete" onclick="deleteCommentByBlock('${block}',${idx})" title="Удалить">✕</button>` : ''}
       </div>
       <div class="comment-text">${c.text.replace(/\n/g,'<br>')}</div>
     </div>`;
@@ -850,17 +859,43 @@ function renderComments(emp) {
     { value: 'Уткин Александр',     label: 'Уткин Александр — старший прораб' },
     { value: 'Зенков Александр',    label: 'Зенков Александр — нач. отдела ПТО' },
     { value: 'Шмидт Светлана',      label: 'Шмидт Светлана — ассистент руководителя' },
+    { value: 'Черепанова Лиля',     label: 'Черепанова Лиля — офис-менеджер' },
   ];
 
   const optionsHTML = COMMENT_PEOPLE.map(p =>
     `<option value="${p.value}"${p.value === prevAuthor ? ' selected' : ''}>${p.label}</option>`
   ).join('\n');
 
+  // Заметки разделены по собственникам
+  const ryabovComments = (emp.comments || []).filter(c => c.owner === 'ryabov' || (!c.owner && c.author === 'Рябов Андрей'));
+  const belovComments  = (emp.comments || []).filter(c => c.owner === 'belov'  || (!c.owner && c.author === 'Белов Александр'));
+  const otherComments  = (emp.comments || []).filter(c => c.owner !== 'ryabov' && c.owner !== 'belov' && c.author !== 'Рябов Андрей' && c.author !== 'Белов Александр');
+
   const block = `<div class="comments-block" id="comments-block">
-    <div class="comments-title"><span>💬</span> Заметки собственников</div>
-    <div id="comments-list">${buildCommentsList(emp.comments)}</div>
+    <div class="comments-title"><span>💬</span> Заметки — Рябов Андрей</div>
+    <div id="comments-list-ryabov">${buildCommentsList(ryabovComments, 'ryabov')}</div>
     <div class="comment-form">
-      <textarea id="comment-text" rows="3" placeholder="Оставьте заметку или комментарий по итогам адаптации..."></textarea>
+      <textarea id="comment-text-ryabov" rows="2" placeholder="Заметка от Рябова Андрея..."></textarea>
+      <div class="comment-form-row">
+        <button class="comment-submit" onclick="addCommentOwner('ryabov','Рябов Андрей')">Добавить</button>
+      </div>
+    </div>
+  </div>
+  <div class="comments-block" id="comments-block-belov" style="margin-top:10px">
+    <div class="comments-title"><span>💬</span> Заметки — Белов Александр</div>
+    <div id="comments-list-belov">${buildCommentsList(belovComments, 'belov')}</div>
+    <div class="comment-form">
+      <textarea id="comment-text-belov" rows="2" placeholder="Заметка от Белова Александра..."></textarea>
+      <div class="comment-form-row">
+        <button class="comment-submit" onclick="addCommentOwner('belov','Белов Александр')">Добавить</button>
+      </div>
+    </div>
+  </div>
+  <div class="comments-block" id="comments-block-other" style="margin-top:10px">
+    <div class="comments-title"><span>💬</span> Общие заметки</div>
+    <div id="comments-list-other">${buildCommentsList(otherComments, 'other')}</div>
+    <div class="comment-form">
+      <textarea id="comment-text" rows="2" placeholder="Оставьте заметку или комментарий..."></textarea>
       <div class="comment-form-row">
         <select class="comment-author-select" id="comment-author" onchange="_lastCommentAuthor=this.value">
           ${optionsHTML}
@@ -873,30 +908,89 @@ function renderComments(emp) {
 }
 
 function addComment() {
-  const emp = employees.find(e => e.id === currentId);
-  if (!emp) return;
-  const text = document.getElementById('comment-text').value.trim();
-  if (!text) { document.getElementById('comment-text').focus(); return; }
-  const author = document.getElementById('comment-author').value;
+  addCommentOwner('other', document.getElementById('comment-author').value, 'comment-text');
+}
+
+function addCommentOwner(owner, author, textId) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const tid = textId || ('comment-text-' + owner);
+  const el = document.getElementById(tid) || document.getElementById('comment-text');
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) { el.focus(); return; }
   const now = new Date();
   const date = now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
   if (!emp.comments) emp.comments = [];
-  emp.comments.push({ author, text, date });
+  emp.comments.push({ author, text, date, owner });
   try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
-  document.getElementById('comment-text').value = '';
-  document.getElementById('comments-list').innerHTML = buildCommentsList(emp.comments);
-  // Комментарии сохраняются сразу в облако для всех ролей
+  el.value = '';
+  // refresh all comment blocks
+  const ryabovC = emp.comments.filter(c => c.owner === 'ryabov' || (!c.owner && c.author === 'Рябов Андрей'));
+  const belovC  = emp.comments.filter(c => c.owner === 'belov'  || (!c.owner && c.author === 'Белов Александр'));
+  const otherC  = emp.comments.filter(c => c.owner !== 'ryabov' && c.owner !== 'belov' && c.author !== 'Рябов Андрей' && c.author !== 'Белов Александр');
+  const lr = document.getElementById('comments-list-ryabov');
+  const lb = document.getElementById('comments-list-belov');
+  const lo = document.getElementById('comments-list-other');
+  if (lr) lr.innerHTML = buildCommentsList(ryabovC, 'ryabov');
+  if (lb) lb.innerHTML = buildCommentsList(belovC, 'belov');
+  if (lo) lo.innerHTML = buildCommentsList(otherC, 'other');
   isSyncing = false;
   saveToGist().then(() => { if (isAdmin) markSaved(); });
 }
 
+function deleteCommentByBlock(block, visIdx) {
+  const emp = employees.find(e => e.id === currentId); if (!emp || !emp.comments) return;
+  let filtered;
+  if (block === 'ryabov') filtered = emp.comments.filter(c => c.owner === 'ryabov' || (!c.owner && c.author === 'Рябов Андрей'));
+  else if (block === 'belov') filtered = emp.comments.filter(c => c.owner === 'belov' || (!c.owner && c.author === 'Белов Александр'));
+  else filtered = emp.comments.filter(c => c.owner !== 'ryabov' && c.owner !== 'belov' && c.author !== 'Рябов Андрей' && c.author !== 'Белов Александр');
+  const target = filtered[visIdx];
+  if (!target) return;
+  const realIdx = emp.comments.indexOf(target);
+  if (realIdx >= 0) emp.comments.splice(realIdx, 1);
+  try { localStorage.setItem('ob_employees', JSON.stringify(employees)); } catch(e) {}
+  isSyncing = false;
+  saveToGist();
+  const ryabovC = emp.comments.filter(c => c.owner === 'ryabov' || (!c.owner && c.author === 'Рябов Андрей'));
+  const belovC  = emp.comments.filter(c => c.owner === 'belov'  || (!c.owner && c.author === 'Белов Александр'));
+  const otherC  = emp.comments.filter(c => c.owner !== 'ryabov' && c.owner !== 'belov' && c.author !== 'Рябов Андрей' && c.author !== 'Белов Александр');
+  const lr = document.getElementById('comments-list-ryabov');
+  const lb = document.getElementById('comments-list-belov');
+  const lo = document.getElementById('comments-list-other');
+  if (lr) lr.innerHTML = buildCommentsList(ryabovC, 'ryabov');
+  if (lb) lb.innerHTML = buildCommentsList(belovC, 'belov');
+  if (lo) lo.innerHTML = buildCommentsList(otherC, 'other');
+}
+
 function deleteComment(ci) {
-  const emp = employees.find(e => e.id === currentId);
-  if (!emp || !emp.comments) return;
-  emp.comments.splice(ci, 1);
+  deleteCommentByBlock('other', ci);
+}
+
+function saveTaskNote(i, val) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const trimmed = val.trim();
+  if (emp.tasks[i].note === trimmed) return;
+  emp.tasks[i].note = trimmed;
   save();
-  const list = document.getElementById('comments-list');
-  if (list) list.innerHTML = buildCommentsList(emp.comments);
+  renderDetailTasks(emp);
+  updateDetailProgress(emp);
+}
+
+function editTaskNote(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const wrap = document.querySelector(`.task-note-wrap`);
+  // find the right wrap by task index
+  const allWraps = document.querySelectorAll('.task-note-wrap');
+  const taskEls = document.querySelectorAll('.task');
+  // find wrap that follows task i
+  let targetWrap = null;
+  taskEls.forEach((el, idx) => {
+    if (idx === i) targetWrap = el.nextElementSibling;
+  });
+  if (!targetWrap) return;
+  const current = emp.tasks[i].note || '';
+  targetWrap.innerHTML = `<input class="task-note-input" value="${current}" onblur="saveTaskNote(${i},this.value)" onkeydown="if(event.key==='Enter'){this.blur()}">`;
+  targetWrap.querySelector('input').focus();
 }
 
 function editName(i) {
