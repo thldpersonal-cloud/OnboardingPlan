@@ -477,10 +477,9 @@ function migrateEmployees() {
 }
 
 /* ---- AUTH ---- */
-const ADMIN_PASS    = 'admin2026';  // пароль администратора
-const MANAGER_PASS  = 'manager2026'; // пароль руководителя
+const ADMIN_PASS = 'admin2026'; // пароль администратора
 let isAdmin = false;
-let isManager = false;  // руководитель: просмотр всех + комментарии
+let isManager = false;
 let isEmployeeView = false;
 let viewEmpId = null;
 let unsavedChanges = false;
@@ -520,34 +519,11 @@ function checkInitialMode() {
   return false;
 }
 
-let authMode = 'admin'; // 'admin' or 'manager'
-
-function switchAuthTab(mode) {
-  authMode = mode;
-  const isAdm = mode === 'admin';
-  document.getElementById('tab-admin-btn').style.cssText = isAdm
-    ? 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #1a1a18;background:#1a1a18;color:#fff;font-size:12px;cursor:pointer;font-weight:500'
-    : 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #e0dfd8;background:#fff;color:#888780;font-size:12px;cursor:pointer';
-  document.getElementById('tab-manager-btn').style.cssText = !isAdm
-    ? 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #534AB7;background:#534AB7;color:#fff;font-size:12px;cursor:pointer;font-weight:500'
-    : 'flex:1;padding:7px;border-radius:8px;border:1.5px solid #e0dfd8;background:#fff;color:#888780;font-size:12px;cursor:pointer';
-  document.getElementById('auth-hint').innerHTML = isAdm
-    ? 'Пароль: <b>admin2026</b>'
-    : 'Пароль: <b>manager2026</b>';
-  document.getElementById('auth-pass').value = '';
-}
-
 function doLogin() {
   const val = document.getElementById('auth-pass').value;
-  if (authMode === 'admin' && val === ADMIN_PASS) {
+  if (val === ADMIN_PASS) {
     isAdmin = true;
     sessionStorage.setItem('ob_role', 'admin');
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app').style.display = '';
-    load();
-  } else if (authMode === 'manager' && val === MANAGER_PASS) {
-    isManager = true;
-    sessionStorage.setItem('ob_role', 'manager');
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').style.display = '';
     load();
