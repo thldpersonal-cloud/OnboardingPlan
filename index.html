@@ -832,7 +832,14 @@ function renderDetailTasks(emp) {
       const doneClass = emp.checked[i] ? 'done-task' : '';
       const struckClass = emp.checked[i] ? 'struck' : '';
       const checkDone = emp.checked[i] ? 'done' : '';
-      html += `<div class="task ${doneClass}" id="dtask-${i}" data-owner="${t.owner}">
+      const colorClass = getTaskColorClass(t.name);
+      html += `<div class="task ${doneClass} ${colorClass}" id="dtask-${i}" data-owner="${t.owner}"
+        draggable="${isAdmin}"
+        ondragstart="if(isAdmin)onDragStart(event,${i})"
+        ondragend="if(isAdmin)onDragEnd(event,${i})"
+        ondragover="if(isAdmin){event.preventDefault();onDragOver(event,${i})}"
+        ondrop="if(isAdmin)onDrop(event,${i})">
+        ${isAdmin ? '<div class="drag-handle" title="Перетащить">⠿</div>' : ''}
         <div class="check ${checkDone}" onclick="toggleTask(${i})">✓</div>
         <div class="task-body">
           <div class="task-name ${struckClass}" id="tname-${i}" ${isAdmin ? `onclick="editName(${i})" title="Нажмите, чтобы изменить"` : ''}>${t.name}</div>
