@@ -68,7 +68,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .badge-active { background: #E6F1FB; color: #185FA5; }
 .badge-pending { background: #f1efe8; color: #888780; }
 .tasks { display: flex; flex-direction: column; gap: 5px; }
-.task { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 8px; padding: 10px 13px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s; }
+.task { background: #fff; border: 0.5px solid #e0dfd8; border-radius: 8px; padding: 10px 13px; display: flex; align-items: center; gap: 10px; transition: opacity 0.2s, transform 0.1s; cursor: grab; }
+.task:active { cursor: grabbing; }
+.task.dragging { opacity: 0.4; transform: scale(0.98); }
+.task.drag-over { border-color: #534AB7; box-shadow: 0 0 0 2px #EEEDFE; }
+.task.t-study { border-left: 3px solid #D4B896; background: #FDFAF5; }
+.task.t-visit { border-left: 3px solid #9BB5C8; background: #F5F8FB; }
+.task.t-meet  { border-left: 3px solid #9BBFB0; background: #F5FAF7; }
+.drag-handle { font-size: 14px; color: #d0cfc8; cursor: grab; flex-shrink: 0; user-select: none; }
+.drag-handle:hover { color: #888780; }
 .task.done-task { opacity: 0.5; }
 .check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #c8c7c0; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 11px; color: transparent; transition: all 0.2s; user-select: none; }
 .check.done { background: #1D9E75; border-color: #1D9E75; color: #fff; }
@@ -108,6 +116,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .doc-file-link:hover { text-decoration: underline; }
 .doc-upload-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888780; cursor: pointer; padding: 3px 0; border: none; background: none; }
 .doc-upload-btn:hover { color: #1a1a18; }
+.doc-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888780; cursor: pointer; padding: 3px 0; border: none; background: none; }
+.doc-link-btn:hover { color: #534AB7; }
+.doc-link-input-wrap { display:flex; align-items:center; gap:4px; margin-top:4px; }
+.doc-link-input { flex:1; font-size:11px; border:0.5px solid #d0cfc8; border-radius:6px; padding:4px 8px; outline:none; font-family:inherit; }
+.doc-link-input:focus { border-color:#534AB7; }
+.doc-link-save { font-size:11px; padding:3px 8px; background:#534AB7; color:#fff; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; }
+.doc-link-val { display:flex; align-items:center; gap:5px; font-size:11px; color:#534AB7; word-break:break-all; flex:1; min-width:0; }
+.doc-link-val a { color:#534AB7; text-decoration:none; }
+.doc-link-val a:hover { text-decoration:underline; }
 .doc-inline-input { font-size: 12px; border: 0.5px solid #888780; border-radius: 5px; padding: 2px 6px; outline: none; width: 100%; font-family: inherit; background: #fff; color: #1a1a18; }
 .note { background: #f1efe8; border-radius: 0 8px 8px 0; border-left: 3px solid #1D9E75; padding: 9px 13px; font-size: 12px; color: #5F5E5A; margin-top: 14px; }
 .updated-hint { font-size: 11px; color: #b4b2a9; text-align: right; margin-top: 14px; }
@@ -1067,12 +1084,28 @@ function renderDocs() {
   grid.innerHTML = docs.map((doc, di) => {
     const tagLabel = doc.tag === 'req' ? 'Обязательно' : 'Справочно';
     const tagCls = doc.tag === 'req' ? 'tag-req' : 'tag-opt';
-    const fileArea = doc.fileName
-      ? `<div class="doc-file-area" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+    // File row
+    const fileRow = doc.fileName
+      ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
            <a class="doc-file-link" href="${doc.file}" download="${doc.fileName}" style="flex:1;min-width:0">📎 ${doc.fileName}</a>
            <button class="doc-action-btn doc-action-del" onclick="removeFile(${di})" title="Удалить файл" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>
          </div>`
-      : `<div class="doc-file-area"><label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)"></div>`;
+      : `<label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)">`;
+
+    // Link row
+    const linkRow = doc.link
+      ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+           <div class="doc-link-val"><a href="${doc.link}" target="_blank" rel="noopener">🔗 ${doc.linkLabel || doc.link}</a></div>
+           <button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>
+         </div>`
+      : `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
+         <div id="doc-link-input-${di}" style="display:none" class="doc-link-input-wrap">
+           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." />
+           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название" style="max-width:90px"/>
+           <button class="doc-link-save" onclick="saveDocLink(${di})">OK</button>
+         </div>`;
+
+    const fileArea = `<div class="doc-file-area">${fileRow}<div style="margin-top:4px">${linkRow}</div></div>`;
     return `<div class="doc-card" id="doc-${di}">
       <div class="doc-actions">
         <button class="doc-action-btn" onclick="toggleDocTag(${di})" title="Сменить тип">${doc.tag==='req'?'→ Справочно':'→ Обязательно'}</button>
@@ -1141,6 +1174,31 @@ function removeFile(di) {
   if (!emp || !emp.docs[di]) return;
   emp.docs[di].file = null;
   emp.docs[di].fileName = null;
+  save(); renderDocs();
+}
+
+function showDocLinkInput(di) {
+  const wrap = document.getElementById('doc-link-input-' + di);
+  if (wrap) { wrap.style.display = 'flex'; document.getElementById('doc-link-url-' + di).focus(); }
+}
+
+function saveDocLink(di) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const url = (document.getElementById('doc-link-url-' + di).value || '').trim();
+  if (!url) return;
+  const label = (document.getElementById('doc-link-label-' + di).value || '').trim();
+  const doc = emp.docs ? emp.docs[di] : null;
+  if (!doc) return;
+  doc.link = url.startsWith('http') ? url : 'https://' + url;
+  doc.linkLabel = label || url;
+  save(); renderDocs();
+}
+
+function removeDocLink(di) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const doc = emp.docs ? emp.docs[di] : null;
+  if (!doc) return;
+  doc.link = null; doc.linkLabel = null;
   save(); renderDocs();
 }
 
@@ -1414,6 +1472,52 @@ function editGoal(period, gi, el) {
   }
   input.addEventListener('blur', apply);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { input.value = current; input.blur(); } });
+}
+
+/* ===== ЦВЕТОВАЯ МАРКИРОВКА ===== */
+function getTaskColorClass(name) {
+  const n = name.toLowerCase();
+  if (/обучен|изучен|инструктаж|тест|курс|вебинар|регламент|документац/.test(n)) return 't-study';
+  if (/выезд|объект|выход на/.test(n)) return 't-visit';
+  if (/встреча с руков|встреча рук|промежуточная встреча|итоговая встреча|встреча.*директор|встреча.*менедж/.test(n)) return 't-meet';
+  return '';
+}
+
+/* ===== DRAG & DROP ===== */
+let dragSrcIdx = null;
+
+function onDragStart(e, i) {
+  dragSrcIdx = i;
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => { const el = document.getElementById('dtask-' + i); if (el) el.classList.add('dragging'); }, 0);
+}
+
+function onDragEnd(e, i) {
+  document.querySelectorAll('.task').forEach(t => t.classList.remove('dragging','drag-over'));
+}
+
+function onDragOver(e, i) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('.task').forEach(t => t.classList.remove('drag-over'));
+  const el = document.getElementById('dtask-' + i); if (el) el.classList.add('drag-over');
+}
+
+function onDrop(e, i) {
+  e.preventDefault();
+  if (dragSrcIdx === null || dragSrcIdx === i) return;
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  // Swap tasks and checked state
+  const tasks = emp.tasks;
+  const checked = emp.checked;
+  const [t] = tasks.splice(dragSrcIdx, 1);
+  const [c] = checked.splice(dragSrcIdx, 1);
+  const destIdx = dragSrcIdx < i ? i - 1 : i;
+  tasks.splice(destIdx, 0, t);
+  checked.splice(destIdx, 0, c);
+  emp.stageSizes = null; // recalculate
+  dragSrcIdx = null;
+  save(); renderDetailTasks(emp); updateDetailProgress(emp);
 }
 
 function switchTab(name, el) {
