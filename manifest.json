@@ -1,6 +1,6 @@
 {
-  "name": "Адаптация сотрудников",
-  "short_name": "Адаптация",
+  "name": "ТехноХолдинг Персонал",
+  "short_name": "ТХ Персонал",
   "description": "Система управления планами адаптации сотрудников",
   "start_url": "/OnboardingPlan/",
   "scope": "/OnboardingPlan/",
