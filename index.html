@@ -30,6 +30,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .emp-pbar-wrap { background: #e0dfd8; border-radius: 3px; height: 4px; margin-top: 5px; }
 .emp-pbar { height: 4px; border-radius: 3px; background: #1D9E75; }
 .emp-stage-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 4px; }
+.emp-period { font-size: 11px; color: #888780; margin-top: 4px; display:flex; align-items:center; gap:4px; }
+.emp-period-date { border-bottom: 1px dashed #c8c7c0; cursor: pointer; color: #534AB7; transition: color 0.15s; }
+.emp-period-date:hover { color: #185FA5; }
+.emp-period-input { font-size:11px; border:0.5px solid #534AB7; border-radius:5px; padding:1px 5px; outline:none; font-family:inherit; width:90px; }
 .s-done { background: #EAF3DE; color: #3B6D11; }
 .s-active { background: #E6F1FB; color: #185FA5; }
 .s-pending { background: #f1efe8; color: #888780; }
@@ -443,6 +447,16 @@ let currentId = null;
 function migrateEmployees() {
   let changed = false;
   employees.forEach(emp => {
+    // Add adaptEnd if missing (default 3 months from start)
+    if (!emp.adaptEnd) {
+      try {
+        const d = emp.startDate ? new Date(emp.startDate) : new Date();
+        d.setMonth(d.getMonth() + 3);
+        emp.adaptEnd = d.toISOString().split('T')[0];
+        emp.adaptEndDisplay = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+      } catch(e) {}
+      changed = true;
+    }
     // Fix Бронникова owner type
     if (emp.tasks) emp.tasks.forEach(t => {
       if (t.who === 'Бронникова Марина' && t.owner === 'accounting') {
@@ -658,6 +672,38 @@ function editEmpName(id) {
   });
 }
 
+function editAdaptDate(id, which) {
+  if (!isAdmin) return;
+  const emp = employees.find(e => e.id === id); if (!emp) return;
+  const isStart = which === 'start';
+  const current = isStart ? emp.startDate : (emp.adaptEnd || '');
+  const el = document.querySelector(`[onclick*="editAdaptDate('${id}','${which}')"]`);
+  if (!el) return;
+
+  const input = document.createElement('input');
+  input.type = 'date';
+  input.value = current;
+  input.className = 'emp-period-input';
+  el.replaceWith(input);
+  input.focus();
+
+  function apply() {
+    if (!input.value) { renderList(); return; }
+    const d = new Date(input.value);
+    const display = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+    if (isStart) {
+      emp.startDate = input.value;
+      emp.startDisplay = display;
+    } else {
+      emp.adaptEnd = input.value;
+      emp.adaptEndDisplay = display;
+    }
+    save(); renderList();
+  }
+  input.addEventListener('blur', apply);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { renderList(); } });
+}
+
 function renderList() {
   const el = document.getElementById('emp-list');
   const label = document.getElementById('emp-count-label');
@@ -673,17 +719,23 @@ function renderList() {
     const pct = Math.round(done / getTotal(emp) * 100);
     const c = getColor(idx);
     const stage = currentStageLabel(emp);
+    const endDisp = emp.adaptEndDisplay || '—';
     return `<div class="emp-card" onclick="showDetail('${emp.id}')">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${initials(emp.name)}</div>
       <div class="emp-info">
         <div class="emp-name" id="ename-${emp.id}" onclick="event.stopPropagation();editEmpName('${emp.id}')" title="Нажмите, чтобы изменить имя" style="cursor:text">${emp.name}</div>
-        <div class="emp-meta">${emp.role} · с ${emp.startDisplay}</div>
-        <span class="emp-stage-badge ${stage.cls}">${stage.text}</span>
+        <div class="emp-meta">${emp.role}</div>
+        <div class="emp-period">
+          Период адаптации:
+          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','start')" title="Изменить дату начала">${emp.startDisplay}</span>
+          —
+          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="Изменить дату окончания">${endDisp}</span>
+        </div>
       </div>
       <div class="emp-progress">
         <div class="emp-pct">${pct}%</div>
         <div class="emp-pbar-wrap"><div class="emp-pbar" style="width:${pct}%"></div></div>
-        <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${TOTAL} задач</div>
+        <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${getTotal(emp)} задач</div>
       </div>
       <button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>
     </div>`;
@@ -1579,9 +1631,16 @@ function createEmployee() {
     : role === 'Личный помощник'
     ? makeTasksAssistant(startDate, manager, hr, mentor)
     : makeTasks(startDate, manager, hr, mentor);
+  // Default adaptation end = 3 months from start
+  const adaptEndDate = startDate ? new Date(startDate) : new Date();
+  adaptEndDate.setMonth(adaptEndDate.getMonth() + 3);
+  const adaptEnd = adaptEndDate.toISOString().split('T')[0];
+  const adaptEndDisplay = adaptEndDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+
   const emp = {
     id: 'emp_' + Date.now(),
     name, role, startDate, startDisplay, manager, hr, mentor,
+    adaptEnd, adaptEndDisplay,
     tasks: taskList,
     checked: new Array(taskList.length).fill(false)
   };
