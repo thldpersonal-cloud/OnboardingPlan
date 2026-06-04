@@ -720,7 +720,14 @@ function renderList() {
     const c = getColor(idx);
     const stage = currentStageLabel(emp);
     const endDisp = emp.adaptEndDisplay || '—';
-    return `<div class="emp-card" onclick="showDetail('${emp.id}')">
+    // Проверяем просрочку: срок прошёл, а план не выполнен
+    const today = new Date(); today.setHours(0,0,0,0);
+    const endDate = emp.adaptEnd ? new Date(emp.adaptEnd) : null;
+    const isOverdue = endDate && today > endDate && pct < 100;
+    const pctColor = isOverdue ? '#A32D2D' : '#1a1a18';
+    const pbarColor = isOverdue ? '#E8A0A0' : '#1D9E75';
+    const overdueHint = isOverdue ? `<div style="font-size:10px;color:#A32D2D;margin-top:2px">⚠ срок истёк</div>` : '';
+    return `<div class="emp-card" onclick="showDetail('${emp.id}')" style="${isOverdue ? 'border-color:#E8A0A0;' : ''}">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${initials(emp.name)}</div>
       <div class="emp-info">
         <div class="emp-name" id="ename-${emp.id}" onclick="event.stopPropagation();editEmpName('${emp.id}')" title="Нажмите, чтобы изменить имя" style="cursor:text">${emp.name}</div>
@@ -729,13 +736,14 @@ function renderList() {
           Период адаптации:
           <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','start')" title="Изменить дату начала">${emp.startDisplay}</span>
           —
-          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="Изменить дату окончания">${endDisp}</span>
+          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="Изменить дату окончания" style="${isOverdue ? 'color:#A32D2D' : ''}">${endDisp}</span>
         </div>
       </div>
       <div class="emp-progress">
-        <div class="emp-pct">${pct}%</div>
-        <div class="emp-pbar-wrap"><div class="emp-pbar" style="width:${pct}%"></div></div>
+        <div class="emp-pct" style="color:${pctColor}">${pct}%</div>
+        <div class="emp-pbar-wrap"><div class="emp-pbar" style="width:${pct}%;background:${pbarColor}"></div></div>
         <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${getTotal(emp)} задач</div>
+        ${overdueHint}
       </div>
       <button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>
     </div>`;
