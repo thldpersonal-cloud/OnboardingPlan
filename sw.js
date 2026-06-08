@@ -1,4 +1,4 @@
-const CACHE_NAME = 'onboarding-v1';
+const CACHE_NAME = 'onboarding-v2';
 const URLS_TO_CACHE = [
   '/OnboardingPlan/',
   '/OnboardingPlan/index.html',
