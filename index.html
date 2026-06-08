@@ -230,8 +230,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div id="detail-view" class="detail">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <button class="back-btn" onclick="showList()" style="margin-bottom:0">← Все сотрудники</button>
-    <div style="display:flex;gap:8px">
-      <button class="btn-save" id="btn-save-detail" onclick="forceSave()" style="font-size:12px;padding:6px 14px">💾 Сохранить</button>
+    <div style="display:flex;gap:8px" id="detail-btn-group">
+      <button class="btn-edit-mode" id="btn-edit-mode" onclick="toggleEditMode()">✏️ Редактировать</button>
+      <button class="btn-save" id="btn-save-detail" onclick="confirmSave()" style="font-size:12px;padding:6px 14px;display:none">💾 Сохранить</button>
       <button class="btn-add" id="btn-share" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
     </div>
   </div>
