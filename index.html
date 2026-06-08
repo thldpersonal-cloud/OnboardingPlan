@@ -195,6 +195,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-save:disabled { background:#a8d5c5; cursor:default; }
 .btn-save.unsaved { background:#534AB7; animation: pulse-save 1.5s infinite; }
 @keyframes pulse-save { 0%,100%{opacity:1} 50%{opacity:0.8} }
+.btn-edit-mode { display:flex; align-items:center; gap:6px; padding:8px 16px; background:#fff; color:#1a1a18; border:1.5px solid #e0dfd8; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; transition:all 0.15s; }
+.btn-edit-mode:hover { border-color:#534AB7; color:#534AB7; }
+.btn-edit-mode.active { background:#534AB7; color:#fff; border-color:#534AB7; }
+.edit-mode-banner { display:none; background:#EEEDFE; border:1px solid #534AB7; border-radius:8px; padding:8px 14px; font-size:12px; color:#534AB7; margin-bottom:12px; align-items:center; gap:8px; }
+.edit-mode-banner.visible { display:flex; }
 /* SHARE LINK */
 .share-wrap { display:flex; align-items:center; gap:8px; background:#f5f4f0; border:0.5px solid #e0dfd8; border-radius:8px; padding:8px 12px; margin-top:12px; }
 .share-url { font-size:11px; color:#534AB7; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -271,6 +276,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button class="btn-add" style="font-size:12px;padding:6px 14px" onclick="addDoc()">+ Добавить документ</button>
     </div>
     <div class="docs-grid" id="docs-grid"></div>
+  </div>
+  <div class="edit-mode-banner" id="edit-mode-banner">
+    ✏️ Режим редактирования активен — вносите изменения и нажмите «Сохранить»
   </div>
   <div id="tab-tests" class="hidden"></div>
   <div id="tab-career" class="hidden"></div>
@@ -495,6 +503,7 @@ let isManager = false;
 let isEmployeeView = false;
 let viewEmpId = null;
 let unsavedChanges = false;
+let editMode = false; // режим редактирования (только для админа)
 
 function checkInitialMode() {
   const params = new URLSearchParams(window.location.search);
@@ -519,14 +528,14 @@ function markUnsaved() {
 
 function markSaved() {
   unsavedChanges = false;
-  ['btn-save','btn-save-detail'].forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) { btn.textContent = 'Сохранено ✓'; btn.disabled = false; btn.classList.remove('unsaved'); btn.style.background='#1D9E75'; }
-  });
+  const btnMain = document.getElementById('btn-save');
+  if (btnMain) { btnMain.textContent = 'Сохранено ✓'; btnMain.disabled = false; btnMain.classList.remove('unsaved'); btnMain.style.background='#1D9E75'; }
+  const btnDetail = document.getElementById('btn-save-detail');
+  if (btnDetail) { btnDetail.textContent = '💾 Сохранить'; btnDetail.disabled = false; btnDetail.classList.remove('unsaved'); btnDetail.style.background='#1D9E75'; }
 }
 
 async function forceSave() {
-  isSyncing = false; // сбрасываем флаг на случай зависания
+  isSyncing = false;
   ['btn-save','btn-save-detail'].forEach(id => {
     const btn = document.getElementById(id);
     if (btn) { btn.textContent = '⏳ Сохранение...'; btn.disabled = true; }
@@ -680,6 +689,47 @@ function editEmpName(id) {
   });
 }
 
+function toggleEditMode() {
+  editMode = !editMode;
+  const btn = document.getElementById('btn-edit-mode');
+  const saveBtn = document.getElementById('btn-save-detail');
+  const banner = document.getElementById('edit-mode-banner');
+  if (editMode) {
+    btn.textContent = '✕ Отменить';
+    btn.classList.add('active');
+    if (saveBtn) { saveBtn.style.display = ''; }
+    if (banner) banner.classList.add('visible');
+  } else {
+    // Cancel — reload from cloud without saving
+    editMode = false;
+    btn.textContent = '✏️ Редактировать';
+    btn.classList.remove('active');
+    if (saveBtn) { saveBtn.style.display = 'none'; }
+    if (banner) banner.classList.remove('visible');
+    // Re-render to remove edit controls
+    const emp = employees.find(e => e.id === currentId);
+    if (emp) { renderDetailTasks(emp); updateDetailProgress(emp); }
+  }
+  // Re-render tasks to show/hide edit controls
+  const emp = employees.find(e => e.id === currentId);
+  if (emp) renderDetailTasks(emp);
+}
+
+function confirmSave() {
+  if (!confirm('Сохранить все изменения?')) return;
+  forceSave().then(() => {
+    editMode = false;
+    const btn = document.getElementById('btn-edit-mode');
+    const saveBtn = document.getElementById('btn-save-detail');
+    const banner = document.getElementById('edit-mode-banner');
+    if (btn) { btn.textContent = '✏️ Редактировать'; btn.classList.remove('active'); }
+    if (saveBtn) saveBtn.style.display = 'none';
+    if (banner) banner.classList.remove('visible');
+    const emp = employees.find(e => e.id === currentId);
+    if (emp) renderDetailTasks(emp);
+  });
+}
+
 function editAdaptDate(id, which) {
   if (!isAdmin) return;
   const emp = employees.find(e => e.id === id); if (!emp) return;
@@ -760,14 +810,19 @@ function renderList() {
 
 function showDetail(id) {
   currentId = id;
+  editMode = false;
   // Show/hide admin-only controls based on role
   setTimeout(() => {
-    const saveDetail = document.getElementById('btn-save-detail');
+    const editBtn = document.getElementById('btn-edit-mode');
+    const saveBtn = document.getElementById('btn-save-detail');
     const shareBtn = document.getElementById('btn-share');
-    if (saveDetail) saveDetail.style.display = isAdmin ? '' : 'none';
+    if (editBtn) editBtn.style.display = isAdmin ? '' : 'none';
+    if (saveBtn) saveBtn.style.display = 'none'; // hidden until edit mode
     if (shareBtn) shareBtn.style.display = isAdmin ? '' : 'none';
-    // Init save button state
-    if (saveDetail && isAdmin) { saveDetail.textContent = 'Сохранено ✓'; saveDetail.style.background='#1D9E75'; }
+    // Reset edit mode button state
+    if (editBtn) { editBtn.textContent = '✏️ Редактировать'; editBtn.classList.remove('active'); }
+    const banner = document.getElementById('edit-mode-banner');
+    if (banner) banner.classList.remove('visible');
   }, 0);
   const emp = employees.find(e => e.id === id);
   if (!emp) return;
@@ -798,6 +853,7 @@ function showDetail(id) {
 
 function showList() {
   currentId = null;
+  editMode = false;
   document.getElementById('list-view').style.display = '';
   document.getElementById('detail-view').style.display = 'none';
   renderList();
@@ -902,21 +958,21 @@ function renderDetailTasks(emp) {
       const checkDone = emp.checked[i] ? 'done' : '';
       const colorClass = getTaskColorClass(t.name);
       html += `<div class="task ${doneClass} ${colorClass}" id="dtask-${i}" data-owner="${t.owner}"
-        draggable="${isAdmin}"
-        ondragstart="if(isAdmin)onDragStart(event,${i})"
-        ondragend="if(isAdmin)onDragEnd(event,${i})"
-        ondragover="if(isAdmin){event.preventDefault();onDragOver(event,${i})}"
-        ondrop="if(isAdmin)onDrop(event,${i})">
-        ${isAdmin ? '<div class="drag-handle" title="Перетащить">⠿</div>' : ''}
+        draggable="${isAdmin && editMode}"
+        ondragstart="if(isAdmin&&editMode)onDragStart(event,${i})"
+        ondragend="if(isAdmin&&editMode)onDragEnd(event,${i})"
+        ondragover="if(isAdmin&&editMode){event.preventDefault();onDragOver(event,${i})}"
+        ondrop="if(isAdmin&&editMode)onDrop(event,${i})">
+        ${(isAdmin&&editMode) ? '<div class="drag-handle" title="Перетащить">⠿</div>' : ''}
         <div class="check ${checkDone}" onclick="toggleTask(${i})">✓</div>
         <div class="task-body">
-          <div class="task-name ${struckClass}" id="tname-${i}" ${isAdmin ? `onclick="editName(${i})" title="Нажмите, чтобы изменить"` : ''}>${t.name}</div>
-          <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span>${isAdmin ? '<span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span>' : ''}</div>
+          <div class="task-name ${struckClass}" id="tname-${i}" ${(isAdmin&&editMode) ? `onclick="editName(${i})" title="Нажмите, чтобы изменить"` : ''}>${t.name}</div>
+          <div class="task-meta" id="tmeta-${i}" onclick="editOwner(${i})" title="Нажмите, чтобы изменить ответственного">${PILL_MAP[t.owner]}<span class="task-who">${t.who}</span>${(isAdmin&&editMode) ? '<span style="font-size:10px;color:#d0cfc8;margin-left:3px">✎</span>' : ''}</div>
         </div>
-        <div class="task-date" id="tdate-${i}" ${isAdmin ? `onclick="editDate(${i})" title="Нажмите, чтобы изменить дату"` : ''}>${t.date}</div>
-        ${isAdmin ? `<div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>` : ''}
+        <div class="task-date" id="tdate-${i}" ${(isAdmin&&editMode) ? `onclick="editDate(${i})" title="Нажмите, чтобы изменить дату"` : ''}>${t.date}</div>
+        ${(isAdmin&&editMode) ? `<div class="task-actions"><button class="btn-task-del" onclick="deleteTask(${i})" title="Удалить задачу">×</button></div>` : ''}
       </div>
-      ${(isAdmin || isManager) ? `
+      ${(isAdmin && editMode) || isManager ? `
       <div class="task-note-wrap">
         ${t.note
           ? `<div class="task-note-text" onclick="editTaskNote(${i})" title="Нажмите, чтобы изменить">💬 ${t.note}</div>`
@@ -924,7 +980,7 @@ function renderDetailTasks(emp) {
         }
       </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text">💬 ${t.note}</div></div>` : '')}`;
     }
-    if (isAdmin) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
+    if (isAdmin&&editMode) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
   });
   container.innerHTML = html;
@@ -1114,7 +1170,7 @@ function editTaskNote(i) {
 }
 
 function editName(i) {
-  if (!isAdmin) return;
+  if (!isAdmin || !editMode) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tname-' + i);
@@ -1291,7 +1347,7 @@ function attachFile(di, input) {
 }
 
 function editOwner(i) {
-  if (!isAdmin) return;
+  if (!isAdmin || !editMode) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tmeta-' + i);
@@ -1324,7 +1380,7 @@ function editOwner(i) {
 }
 
 function editDate(i) {
-  if (!isAdmin) return;
+  if (!isAdmin || !editMode) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const cell = document.getElementById('tdate-' + i);
