@@ -663,7 +663,7 @@ function currentStageLabel(emp) {
 }
 
 function editEmpName(id) {
-  if (!isAdmin) return;
+  if (!isAdmin || !editMode) return;
   const emp = employees.find(e => e.id === id); if (!emp) return;
   const el = document.getElementById('ename-' + id); if (!el) return;
   const current = emp.name;
@@ -732,7 +732,7 @@ function confirmSave() {
 }
 
 function editAdaptDate(id, which) {
-  if (!isAdmin) return;
+  if (!isAdmin || !editMode) return;
   const emp = employees.find(e => e.id === id); if (!emp) return;
   const isStart = which === 'start';
   const current = isStart ? emp.startDate : (emp.adaptEnd || '');
@@ -839,7 +839,7 @@ function showDetail(id) {
   av.style.background = c.bg;
   av.style.color = c.color;
   document.getElementById('d-name').textContent = emp.name;
-  document.getElementById('d-meta').innerHTML = emp.role + ' · Выход: <span class="start-date-editable" id="d-startdate" title="Нажмите, чтобы изменить дату выхода" onclick="editStartDate()">' + emp.startDisplay + '</span> · Рук.: ' + emp.manager;
+  document.getElementById('d-meta').innerHTML = emp.role + ' · Выход: <span class="' + (editMode ? 'start-date-editable' : '') + '" id="d-startdate" ' + (editMode ? 'title="Нажмите, чтобы изменить дату выхода" onclick="editStartDate()"' : '') + '>' + emp.startDisplay + '</span> · Рук.: ' + emp.manager;
 
   renderDetailTasks(emp);
   updateDetailProgress(emp);
@@ -1144,6 +1144,7 @@ function deleteComment(ci) {
 }
 
 function saveTaskNote(i, val) {
+  if (isAdmin && !editMode) return;
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   const trimmed = val.trim();
   if (emp.tasks[i].note === trimmed) return;
@@ -1220,22 +1221,22 @@ function renderDocs() {
     const fileRow = doc.fileName
       ? `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
            <a class="doc-file-link" href="${doc.file}" download="${doc.fileName}" style="flex:1;min-width:0">📎 ${doc.fileName}</a>
-           <button class="doc-action-btn doc-action-del" onclick="removeFile(${di})" title="Удалить файл" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>
+           ${(isAdmin && editMode) ? `<button class="doc-action-btn doc-action-del" onclick="removeFile(${di})" title="Удалить файл" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>` : ''}
          </div>`
-      : `<label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)">`;
+      : (isAdmin && editMode) ? `<label class="doc-upload-btn" for="file-${di}">📎 Прикрепить файл</label><input type="file" id="file-${di}" style="display:none" onchange="attachFile(${di},this)">` : '';
 
     // Link row
     const linkRow = doc.link
       ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
            <div class="doc-link-val"><a href="${doc.link}" target="_blank" rel="noopener">🔗 ${doc.linkLabel || doc.link}</a></div>
-           <button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>
+           ${(isAdmin && editMode) ? `<button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>` : ''}
          </div>`
-      : `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
+      : (isAdmin && editMode) ? `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
          <div id="doc-link-input-${di}" style="display:none" class="doc-link-input-wrap">
            <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." />
            <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название" style="max-width:90px"/>
            <button class="doc-link-save" onclick="saveDocLink(${di})">OK</button>
-         </div>`;
+         </div>` : '';
 
     const fileArea = `<div class="doc-file-area">${fileRow}<div style="margin-top:4px">${linkRow}</div></div>`;
     return `<div class="doc-card" id="doc-${di}">
@@ -1541,8 +1542,8 @@ function renderCareer() {
           ${g.done ? '✓' : ''}
         </div>
         <div class="career-goal-text ${g.done ? 'struck' : ''}" 
-          ${isAdmin ? `onclick="editGoal('${p.key}',${gi},this)"` : ''}>${g.text}</div>
-        ${isAdmin ? `<button onclick="deleteGoal('${p.key}',${gi})" style="font-size:14px;color:#d0cfc8;background:none;border:none;cursor:pointer;flex-shrink:0;padding:0 2px">×</button>` : ''}
+          ${(isAdmin&&editMode) ? `onclick="editGoal('${p.key}',${gi},this)"` : ''}>${g.text}</div>
+        ${(isAdmin && editMode) ? `<button onclick="deleteGoal('${p.key}',${gi})" style="font-size:14px;color:#d0cfc8;background:none;border:none;cursor:pointer;flex-shrink:0;padding:0 2px">×</button>` : ''}
       </div>`).join('');
 
     return `
@@ -1556,7 +1557,7 @@ function renderCareer() {
         </div>
         ${goalsHTML}
         ${goals.length === 0 ? `<div style="font-size:12px;color:#b0afa8;padding:4px 0">Целей пока нет</div>` : ''}
-        ${isAdmin ? `<button class="btn-add-goal" onclick="addGoal('${p.key}')">+ Добавить цель</button>` : ''}
+        ${(isAdmin && editMode) ? `<button class="btn-add-goal" onclick="addGoal('${p.key}')">+ Добавить цель</button>` : ''}
       </div>`;
   }).join('');
 
@@ -1731,6 +1732,7 @@ function deleteEmployee(id) {
 }
 
 function editStartDate() {
+  if (!editMode) return;
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
   const span = document.getElementById('d-startdate');
