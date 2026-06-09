@@ -1040,10 +1040,10 @@ function renderDetailTasks(emp) {
       ${(isAdmin && editMode) || isManager ? `
       <div class="task-note-wrap">
         ${t.note
-          ? `<div class="task-note-text" onclick="editTaskNote(${i})" title="Нажмите, чтобы изменить">💬 ${t.note}</div>`
-          : `<input class="task-note-input" placeholder="Добавить комментарий к задаче..." value="" onblur="saveTaskNote(${i},this.value)" onkeydown="if(event.key==='Enter'){this.blur()}">`
+          ? `<div class="task-note-text" onclick="${(isAdmin&&editMode)||isManager?`editTaskNote(${i})`:''}" title="Нажмите, чтобы изменить" style="white-space:pre-wrap;word-break:break-word">💬 ${t.note}</div>`
+          : `<textarea class="task-note-input" placeholder="Добавить комментарий к задаче..." rows="1" onblur="saveTaskNote(${i},this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"></textarea>`
         }
-      </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text">💬 ${t.note}</div></div>` : '')}`;
+      </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text" style="white-space:pre-wrap;word-break:break-word">💬 ${t.note}</div></div>` : '')}`;
     }
     if (isAdmin&&editMode) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
@@ -1220,19 +1220,19 @@ function saveTaskNote(i, val) {
 
 function editTaskNote(i) {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
-  const wrap = document.querySelector(`.task-note-wrap`);
-  // find the right wrap by task index
-  const allWraps = document.querySelectorAll('.task-note-wrap');
   const taskEls = document.querySelectorAll('.task');
-  // find wrap that follows task i
   let targetWrap = null;
   taskEls.forEach((el, idx) => {
     if (idx === i) targetWrap = el.nextElementSibling;
   });
   if (!targetWrap) return;
   const current = emp.tasks[i].note || '';
-  targetWrap.innerHTML = `<input class="task-note-input" value="${current}" onblur="saveTaskNote(${i},this.value)" onkeydown="if(event.key==='Enter'){this.blur()}">`;
-  targetWrap.querySelector('input').focus();
+  targetWrap.innerHTML = `<textarea class="task-note-input" rows="2" onblur="saveTaskNote(${i},this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}">${current}</textarea>`;
+  const ta = targetWrap.querySelector('textarea');
+  ta.focus();
+  ta.style.height = ta.scrollHeight + 'px';
+  // Move cursor to end
+  ta.setSelectionRange(ta.value.length, ta.value.length);
 }
 
 function editName(i) {
