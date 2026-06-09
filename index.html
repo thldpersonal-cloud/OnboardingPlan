@@ -71,10 +71,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .role-toggle span { font-size: 11px; color: #888780; }
 .rbtn { padding: 4px 10px; font-size: 11px; border-radius: 6px; border: 0.5px solid #c8c7c0; background: transparent; cursor: pointer; color: #888780; }
 .rbtn.active { background: #fff; color: #1a1a18; border-color: #888780; }
-.stage { margin-bottom: 18px; }
-.stage-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.stage-title { font-size: 13px; font-weight: 500; }
-.stage-days { font-size: 11px; color: #888780; }
+.stage { margin-bottom: 20px; border-radius: 12px; overflow: hidden; border: 1.5px solid; }
+.stage-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1.5px solid; }
+.stage-title { font-size: 15px; font-weight: 600; }
+.stage-days { font-size: 12px; opacity: 0.75; }
+.stage .tasks { background: #fff; }
+.stage .task { border-radius: 0; border-left: none; border-right: none; border-top: none; }
+.stage .task:last-of-type { border-bottom: none; }
+.stage .btn-add-task { border-radius: 0; margin: 0; width: 100%; border: none; border-top: 0.5px solid #f0efe8; }
+.stage .task-note-wrap { border-left: none; border-right: none; }
 .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
 .badge-done { background: #EAF3DE; color: #3B6D11; }
 .badge-active { background: #E6F1FB; color: #185FA5; }
@@ -254,8 +259,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div style="display:flex;align-items:center;gap:8px">
       <span id="sync-status" style="font-size:11px;color:#888780"></span>
       <button class="btn-save" id="btn-save" onclick="forceSave()">Сохранено ✓</button>
+      <button class="btn-edit-mode" id="btn-list-edit" onclick="toggleListEdit()">✏️ Редактировать</button>
       <button class="btn-add" style="background:#534AB7" onclick="showDashboard()">📊 Сводная</button>
-      <button class="btn-add" id="btn-add-emp" onclick="openModal()">+ Добавить сотрудника</button>
+      <button class="btn-add" id="btn-add-emp" onclick="openModal()" style="display:none">+ Добавить сотрудника</button>
     </div>
   </div>
   <div class="emp-list" id="emp-list"></div>
@@ -568,7 +574,8 @@ let isManager = false;
 let isEmployeeView = false;
 let viewEmpId = null;
 let unsavedChanges = false;
-let editMode = false; // режим редактирования (только для админа)
+let editMode = false; // режим редактирования внутри карточки
+let listEditMode = false; // режим редактирования на главной странице
 
 function checkInitialMode() {
   const params = new URLSearchParams(window.location.search);
@@ -727,7 +734,7 @@ function currentStageLabel(emp) {
 }
 
 function editEmpName(id) {
-  if (!isAdmin || !editMode) return;
+  if (!isAdmin || !listEditMode) return;
   const emp = employees.find(e => e.id === id); if (!emp) return;
   const el = document.getElementById('ename-' + id); if (!el) return;
   const current = emp.name;
@@ -795,8 +802,43 @@ function confirmSave() {
   });
 }
 
+function rebuildTaskDates(emp, newStartDate) {
+  // Regenerate tasks with new start date based on role
+  const role = emp.role;
+  let newTasks;
+  if (role === 'Прораб') {
+    newTasks = makeTasksForeman(newStartDate, emp.manager, emp.hr, emp.mentor);
+  } else if (role === 'Личный помощник') {
+    newTasks = makeTasksAssistant(newStartDate, emp.manager, emp.hr, emp.mentor);
+  } else {
+    newTasks = makeTasks(newStartDate, emp.manager, emp.hr, emp.mentor);
+  }
+  // Preserve task names, owners, notes — only update dates
+  return emp.tasks.map((t, i) => ({
+    ...t,
+    date: newTasks[i] ? newTasks[i].date : t.date
+  }));
+}
+
+function toggleListEdit() {
+  listEditMode = !listEditMode;
+  const btn = document.getElementById('btn-list-edit');
+  const addBtn = document.getElementById('btn-add-emp');
+  if (listEditMode) {
+    btn.textContent = '✓ Готово';
+    btn.classList.add('active');
+    if (addBtn) addBtn.style.display = '';
+  } else {
+    btn.textContent = '✏️ Редактировать';
+    btn.classList.remove('active');
+    if (addBtn) addBtn.style.display = 'none';
+    forceSave();
+  }
+  renderList();
+}
+
 function editAdaptDate(id, which) {
-  if (!isAdmin || !editMode) return;
+  if (!isAdmin || !listEditMode) return;
   const emp = employees.find(e => e.id === id); if (!emp) return;
   const isStart = which === 'start';
   const current = isStart ? emp.startDate : (emp.adaptEnd || '');
@@ -815,8 +857,18 @@ function editAdaptDate(id, which) {
     const d = new Date(input.value);
     const display = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
     if (isStart) {
+      const oldDate = emp.startDate;
       emp.startDate = input.value;
       emp.startDisplay = display;
+      // Пересчитать даты задач — сдвигаем на разницу в днях
+      if (oldDate && emp.tasks && emp.tasks.length > 0) {
+        const oldD = new Date(oldDate);
+        const newD = new Date(input.value);
+        const diffDays = Math.round((newD - oldD) / 86400000);
+        if (diffDays !== 0) {
+          emp.tasks = rebuildTaskDates(emp, input.value);
+        }
+      }
     } else {
       emp.adaptEnd = input.value;
       emp.adaptEndDisplay = display;
@@ -857,9 +909,9 @@ function renderList() {
         <div class="emp-meta">${emp.role}</div>
         <div class="emp-period">
           Период адаптации:
-          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','start')" title="Изменить дату начала">${emp.startDisplay}</span>
+          <span class="${listEditMode ? 'emp-period-date' : ''}" onclick="event.stopPropagation();editAdaptDate('${emp.id}','start')" title="${listEditMode ? 'Изменить дату начала' : ''}" style="${listEditMode ? '' : 'cursor:default'}">${emp.startDisplay}</span>
           —
-          <span class="emp-period-date" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="Изменить дату окончания" style="${isOverdue ? 'color:#A32D2D' : ''}">${endDisp}</span>
+          <span class="${listEditMode ? 'emp-period-date' : ''}" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="${listEditMode ? 'Изменить дату окончания' : ''}" style="${isOverdue ? 'color:#A32D2D' : ''};${listEditMode ? '' : 'cursor:default'}">${endDisp}</span>
         </div>
       </div>
       <div class="emp-progress">
@@ -868,7 +920,7 @@ function renderList() {
         <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${getTotal(emp)} задач</div>
         ${overdueHint}
       </div>
-      <button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>
+      ${listEditMode ? `<button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>` : ''}
     </div>`;
   }).join('');
 }
@@ -876,6 +928,7 @@ function renderList() {
 function showDetail(id) {
   currentId = id;
   editMode = false;
+  if (listEditMode) { listEditMode = false; const b = document.getElementById('btn-list-edit'); if(b){b.textContent='✏️ Редактировать';b.classList.remove('active');} }
   // Show/hide admin-only controls based on role
   setTimeout(() => {
     const editBtn = document.getElementById('btn-edit-mode');
@@ -1015,7 +1068,13 @@ function renderDetailTasks(emp) {
     if(sdone===stotal){badgeCls='badge-done';badgeText='Выполнено';}
     else if(sdone>0){badgeCls='badge-active';badgeText='В процессе';}
     else{badgeCls='badge-pending';badgeText='Ожидает';}
-    html += `<div class="stage"><div class="stage-header"><span class="stage-title">${STAGE_DEFS[si].title}</span><span class="stage-days">${STAGE_DEFS[si].getDate(emp)}</span><span class="badge ${badgeCls}" id="dbadge-${si}">${badgeText}</span></div><div class="tasks">`;
+    const sc = [
+      {bg:'#E6F1FB',border:'#9BB5C8',text:'#0C447C'},
+      {bg:'#EAF3DE',border:'#9BBFB0',text:'#2A5C1A'},
+      {bg:'#FAEEDA',border:'#D4B896',text:'#6B3D0A'},
+      {bg:'#EEEDFE',border:'#B0ACEC',text:'#3C3489'},
+    ][si] || {bg:'#f5f4f0',border:'#c8c7c0',text:'#1a1a18'};
+    html += `<div class="stage" style="border-color:${sc.border}"><div class="stage-header" style="background:${sc.bg};border-bottom-color:${sc.border};color:${sc.text}"><span class="stage-title">${STAGE_DEFS[si].title}</span><span class="stage-days">${STAGE_DEFS[si].getDate(emp)}</span><span class="badge ${badgeCls}" id="dbadge-${si}" style="margin-left:auto">${badgeText}</span></div><div class="tasks">`;
     for(let i=a;i<=b;i++){
       const t = emp.tasks[i];
       const doneClass = emp.checked[i] ? 'done-task' : '';
