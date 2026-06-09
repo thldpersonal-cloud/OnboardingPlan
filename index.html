@@ -186,6 +186,40 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .start-date-editable:hover { border-color: #534AB7; color: #534AB7; }
 .start-date-input { font-size: 12px; color: #1a1a18; border: 0.5px solid #888780; border-radius: 5px; padding: 1px 5px; background: #fff; outline: none; width: 110px; font-family: inherit; }
 
+/* DASHBOARD */
+.dashboard-view { display:none; }
+.dash-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.dash-title { font-size:15px; font-weight:500; }
+.dash-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.dash-tab { padding:5px 14px; border-radius:20px; border:0.5px solid #e0dfd8; background:#fff; font-size:12px; cursor:pointer; color:#888780; }
+.dash-tab.active { background:#1a1a18; color:#fff; border-color:#1a1a18; }
+.dash-table { width:100%; border-collapse:collapse; font-size:12px; }
+.dash-table th { background:#f5f4f0; padding:8px 10px; text-align:left; font-weight:500; color:#888780; border-bottom:0.5px solid #e0dfd8; position:sticky;top:0; }
+.dash-table td { padding:8px 10px; border-bottom:0.5px solid #f0efe8; vertical-align:top; }
+.dash-table tr:hover td { background:#fafaf8; }
+.dash-emp-name { font-weight:500; color:#1a1a18; }
+.dash-task-item { padding:3px 0; color:#444; line-height:1.4; }
+.dash-task-done { text-decoration:line-through; color:#b0afa8; }
+.dash-badge { display:inline-block; font-size:10px; padding:1px 6px; border-radius:10px; margin-right:4px; }
+.dash-empty { text-align:center; padding:32px; color:#888780; font-size:13px; }
+.dash-no-tasks { color:#c8c7c0; font-size:11px; font-style:italic; }
+/* COPY PLAN MODAL */
+.copy-modal { position:fixed; inset:0; background:rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; z-index:200; }
+.copy-modal-card { background:#fff; border-radius:16px; padding:24px; width:100%; max-width:400px; box-shadow:0 8px 32px rgba(0,0,0,0.12); }
+.copy-modal-card h3 { font-size:15px; font-weight:500; margin-bottom:8px; }
+.copy-emp-list { max-height:280px; overflow-y:auto; margin:12px 0; }
+.copy-emp-item { display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; cursor:pointer; transition:background 0.1s; }
+.copy-emp-item:hover { background:#f5f4f0; }
+.copy-emp-item.selected { background:#EEEDFE; }
+.copy-emp-avatar { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:500; flex-shrink:0; }
+.copy-emp-info { flex:1; }
+.copy-emp-name { font-size:13px; font-weight:500; }
+.copy-emp-role { font-size:11px; color:#888780; }
+.copy-emp-tasks { font-size:11px; color:#534AB7; }
+/* WORD DOWNLOAD */
+.btn-word { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#2B579A; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:500; }
+.btn-word:hover { background:#1e3f6f; }
+
 /* AUTH SCREEN */
 /* EMPLOYEE VIEW (for shared link) */
 .emp-view-header { background:#fff; border:0.5px solid #e0dfd8; border-radius:12px; padding:14px 16px; display:flex; align-items:center; gap:12px; margin-bottom:16px; }
@@ -220,10 +254,40 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div style="display:flex;align-items:center;gap:8px">
       <span id="sync-status" style="font-size:11px;color:#888780"></span>
       <button class="btn-save" id="btn-save" onclick="forceSave()">Сохранено ✓</button>
+      <button class="btn-add" style="background:#534AB7" onclick="showDashboard()">📊 Сводная</button>
       <button class="btn-add" id="btn-add-emp" onclick="openModal()">+ Добавить сотрудника</button>
     </div>
   </div>
   <div class="emp-list" id="emp-list"></div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div class="dashboard-view" id="dashboard-view">
+  <div class="dash-header">
+    <div>
+      <div class="dash-title">📊 Сводная таблица адаптации</div>
+    </div>
+    <button class="back-btn" onclick="hideDashboard()" style="margin-bottom:0">← Назад</button>
+  </div>
+  <div class="dash-tabs">
+    <button class="dash-tab active" onclick="switchDashTab('today',this)">Сегодня</button>
+    <button class="dash-tab" onclick="switchDashTab('week',this)">Эта неделя</button>
+    <button class="dash-tab" onclick="switchDashTab('all',this)">Все активные</button>
+  </div>
+  <div id="dash-content"></div>
+</div>
+
+<!-- COPY PLAN MODAL -->
+<div class="copy-modal" id="copy-modal" style="display:none">
+  <div class="copy-modal-card">
+    <h3>Копировать план адаптации</h3>
+    <p style="font-size:12px;color:#888780">Выберите сотрудника, чей план задач скопировать (без чекбоксов, дат и комментариев)</p>
+    <div class="copy-emp-list" id="copy-emp-list"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+      <button onclick="closeCopyModal()" style="padding:7px 16px;border:0.5px solid #e0dfd8;border-radius:8px;background:#fff;cursor:pointer;font-size:13px">Отмена</button>
+      <button onclick="confirmCopyPlan()" style="padding:7px 16px;background:#534AB7;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">Скопировать</button>
+    </div>
+  </div>
 </div>
 
 <!-- DETAIL VIEW -->
@@ -1763,6 +1827,214 @@ function editStartDate() {
   }
   input.addEventListener('blur', applyDate);
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') input.blur(); });
+}
+
+/* ===== СВОДНАЯ ТАБЛИЦА ===== */
+function showDashboard() {
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'none';
+  document.getElementById('dashboard-view').style.display = 'block';
+  renderDashboard('today');
+}
+
+function hideDashboard() {
+  document.getElementById('dashboard-view').style.display = 'none';
+  document.getElementById('list-view').style.display = '';
+}
+
+function switchDashTab(mode, el) {
+  document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDashboard(mode);
+}
+
+function renderDashboard(mode) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayStr = today.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+  
+  // Determine date range
+  let dateFrom = new Date(today), dateTo = new Date(today);
+  if (mode === 'week') {
+    const day = today.getDay() || 7;
+    dateFrom.setDate(today.getDate() - day + 1);
+    dateTo.setDate(dateFrom.getDate() + 6);
+  } else if (mode === 'all') {
+    dateFrom = new Date(2020,0,1); dateTo = new Date(2030,0,1);
+  }
+
+  const fromStr = dateFrom.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+  const toStr   = dateTo.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
+
+  // Build table rows
+  const rows = employees.map(emp => {
+    const tasks = (emp.tasks || []).map((t, i) => ({...t, done: !!(emp.checked || [])[i]}));
+    
+    // Filter tasks by date match
+    let filtered = tasks;
+    if (mode !== 'all') {
+      filtered = tasks.filter(t => {
+        if (!t.date || t.date === '—' || t.date === '-') return false;
+        // Parse date like "08.06" or "08-30.06" — check if today/week falls in range
+        const parts = t.date.match(/(\d{1,2})\.(\d{2})/g);
+        if (!parts) return false;
+        return parts.some(p => {
+          const [d, m] = p.split('.').map(Number);
+          const taskDate = new Date(today.getFullYear(), m-1, d);
+          return taskDate >= dateFrom && taskDate <= dateTo;
+        });
+      });
+    }
+
+    if (filtered.length === 0 && mode !== 'all') return null;
+    
+    const done = tasks.filter(t => t.done).length;
+    const total = tasks.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    const c = getColor(employees.indexOf(emp));
+
+    const taskItems = filtered.slice(0,8).map(t =>
+      `<div class="dash-task-item ${t.done ? 'dash-task-done' : ''}">
+        ${t.done ? '✓' : '◯'} ${t.name}
+        <span style="color:#888780;font-size:10px"> · ${t.who || ''} · ${t.date || ''}</span>
+      </div>`
+    ).join('');
+
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:28px;height:28px;border-radius:50%;background:${c.bg};color:${c.color};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0">${initials(emp.name)}</div>
+          <div>
+            <div class="dash-emp-name">${emp.name}</div>
+            <div style="font-size:11px;color:#888780">${emp.role}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:36px">
+          <div style="flex:1;height:4px;background:#e0dfd8;border-radius:2px"><div style="height:4px;background:#1D9E75;border-radius:2px;width:${pct}%"></div></div>
+          <span style="font-size:11px;color:#888780">${pct}%</span>
+        </div>
+      </td>
+      <td>${taskItems || '<span class="dash-no-tasks">Нет задач на этот период</span>'}</td>
+    </tr>`;
+  }).filter(Boolean);
+
+  const label = mode==='today' ? `Сегодня, ${todayStr}` : mode==='week' ? `${fromStr} — ${toStr}` : 'Все активные задачи';
+  
+  document.getElementById('dash-content').innerHTML = rows.length
+    ? `<div style="font-size:12px;color:#888780;margin-bottom:8px">${label}</div>
+       <div style="overflow-x:auto"><table class="dash-table">
+         <thead><tr><th style="min-width:180px">Сотрудник</th><th>Задачи</th></tr></thead>
+         <tbody>${rows.join('')}</tbody>
+       </table></div>`
+    : `<div class="dash-empty">На выбранный период задач не найдено</div>`;
+}
+
+/* ===== КОПИРОВАНИЕ ПЛАНА ===== */
+let selectedCopyEmpId = null;
+
+function openCopyModal() {
+  selectedCopyEmpId = null;
+  const list = document.getElementById('copy-emp-list');
+  list.innerHTML = employees
+    .filter(e => e.id !== currentId && e.tasks && e.tasks.length > 0)
+    .map(e => {
+      const c = getColor(employees.indexOf(e));
+      return `<div class="copy-emp-item" id="copy-item-${e.id}" onclick="selectCopyEmp('${e.id}')">
+        <div class="copy-emp-avatar" style="background:${c.bg};color:${c.color}">${initials(e.name)}</div>
+        <div class="copy-emp-info">
+          <div class="copy-emp-name">${e.name}</div>
+          <div class="copy-emp-role">${e.role}</div>
+          <div class="copy-emp-tasks">${e.tasks.length} задач</div>
+        </div>
+      </div>`;
+    }).join('');
+  document.getElementById('copy-modal').style.display = 'flex';
+}
+
+function selectCopyEmp(id) {
+  selectedCopyEmpId = id;
+  document.querySelectorAll('.copy-emp-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('copy-item-' + id);
+  if (el) el.classList.add('selected');
+}
+
+function closeCopyModal() {
+  document.getElementById('copy-modal').style.display = 'none';
+  selectedCopyEmpId = null;
+}
+
+function confirmCopyPlan() {
+  if (!selectedCopyEmpId) { alert('Выберите сотрудника'); return; }
+  const src = employees.find(e => e.id === selectedCopyEmpId);
+  const dst = employees.find(e => e.id === currentId);
+  if (!src || !dst) return;
+  if (!confirm(`Скопировать ${src.tasks.length} задач от ${src.name}? Текущие задачи будут заменены.`)) return;
+  // Copy tasks without checked, notes, comments
+  dst.tasks = src.tasks.map(t => ({
+    name: t.name,
+    owner: t.owner,
+    who: t.who,
+    date: '—'
+  }));
+  dst.checked = new Array(dst.tasks.length).fill(false);
+  dst.stageSizes = src.stageSizes ? [...src.stageSizes] : null;
+  closeCopyModal();
+  save();
+  renderDetailTasks(dst);
+  updateDetailProgress(dst);
+}
+
+/* ===== СКАЧАТЬ WORD ===== */
+function downloadWord() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const STAGE_LABELS = ['День 1', 'Первая неделя', 'Первый месяц', 'Испытательный срок'];
+  
+  let html = `<html><head><meta charset="UTF-8">
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 11pt; margin: 2cm; }
+    h1 { font-size: 14pt; margin-bottom: 4px; }
+    h2 { font-size: 12pt; margin: 16px 0 8px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    .meta { font-size: 10pt; color: #666; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    th { background: #f0f0f0; padding: 6px 8px; text-align: left; font-size: 10pt; border: 0.5pt solid #ccc; }
+    td { padding: 6px 8px; font-size: 10pt; border: 0.5pt solid #ccc; vertical-align: top; }
+    .done { text-decoration: line-through; color: #888; }
+    .pct { font-size: 13pt; font-weight: bold; color: #1D9E75; }
+  </style></head><body>
+  <h1>План адаптации: ${emp.name}</h1>
+  <div class="meta">
+    ${emp.role} · Руководитель: ${emp.manager}<br>
+    Период адаптации: ${emp.startDisplay || '—'} — ${emp.adaptEndDisplay || '—'}<br>
+    Выполнено: <span class="pct">${Math.round(emp.checked.filter(Boolean).length / emp.tasks.length * 100)}%</span> (${emp.checked.filter(Boolean).length} из ${emp.tasks.length} задач)
+  </div>`;
+
+  const ranges = getDynamicStageRanges(emp);
+  ranges.forEach(([a,b], si) => {
+    html += `<h2>${STAGE_LABELS[si] || 'Этап ' + (si+1)}</h2>
+    <table>
+      <tr><th>#</th><th>Задача</th><th>Ответственный</th><th>Срок</th><th>Статус</th></tr>`;
+    for (let i = a; i <= b; i++) {
+      const t = emp.tasks[i];
+      const done = emp.checked[i];
+      html += `<tr>
+        <td>${i - a + 1}</td>
+        <td class="${done ? 'done' : ''}">${t.name}</td>
+        <td>${t.who || ''}</td>
+        <td>${t.date || '—'}</td>
+        <td>${done ? '✓ Выполнено' : '○ Ожидает'}</td>
+      </tr>`;
+    }
+    html += '</table>';
+  });
+
+  html += '</body></html>';
+  
+  const blob = new Blob([html], {type: 'application/msword'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Адаптация_${emp.name.replace(/ /g,'_')}.doc`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // set today as default date on load
