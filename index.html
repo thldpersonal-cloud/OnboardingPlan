@@ -92,8 +92,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .task.t-study { border-left: 3px solid #D4B896; background: #FDFAF5; }
 .task.t-visit { border-left: 3px solid #9BB5C8; background: #F5F8FB; }
 .task.t-meet  { border-left: 3px solid #9BBFB0; background: #F5FAF7; }
-.drag-handle { font-size: 14px; color: #d0cfc8; cursor: grab; flex-shrink: 0; user-select: none; }
-.drag-handle:hover { color: #888780; }
+.drag-handle { font-size:20px; color:#c8c7c0; cursor:grab; flex-shrink:0; user-select:none; padding:2px 6px; touch-action:none; }
+.drag-handle:hover { color:#534AB7; }
+.drag-handle:active { cursor:grabbing; }
+.sortable-ghost { opacity:0.3; background:#EEEDFE !important; }
+.sortable-chosen { box-shadow:0 4px 16px rgba(83,74,183,0.15); }
 .task.done-task { opacity: 0.5; }
 .check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #c8c7c0; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; font-size: 11px; color: transparent; transition: all 0.2s; user-select: none; }
 .check.done { background: #1D9E75; border-color: #1D9E75; color: #fff; }
@@ -245,6 +248,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .btn-copy { font-size:11px; padding:3px 10px; border:0.5px solid #534AB7; border-radius:6px; background:#fff; color:#534AB7; cursor:pointer; white-space:nowrap; }
 .btn-copy:hover { background:#EEEDFE; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
 <body>
 <div class="app" id="app">
@@ -1081,12 +1085,7 @@ function renderDetailTasks(emp) {
       const struckClass = emp.checked[i] ? 'struck' : '';
       const checkDone = emp.checked[i] ? 'done' : '';
       const colorClass = getTaskColorClass(t.name);
-      html += `<div class="task ${doneClass} ${colorClass}" id="dtask-${i}" data-owner="${t.owner}"
-        draggable="${isAdmin && editMode}"
-        ondragstart="if(isAdmin&&editMode)onDragStart(event,${i})"
-        ondragend="if(isAdmin&&editMode)onDragEnd(event,${i})"
-        ondragover="if(isAdmin&&editMode){event.preventDefault();onDragOver(event,${i})}"
-        ondrop="if(isAdmin&&editMode)onDrop(event,${i})">
+      html += `<div class="task ${doneClass} ${colorClass}" id="dtask-${i}" data-owner="${t.owner}">
         ${(isAdmin&&editMode) ? '<div class="drag-handle" title="Перетащить">⠿</div>' : ''}
         <div class="check ${checkDone}" onclick="toggleTask(${i})">✓</div>
         <div class="task-body">
@@ -1109,6 +1108,7 @@ function renderDetailTasks(emp) {
   });
   container.innerHTML = html;
   renderComments(emp);
+  setTimeout(initDragHandles, 50);
 }
 
 const OWNER_COLORS = {
@@ -1739,154 +1739,71 @@ function getTaskColorClass(name) {
   return '';
 }
 
-/* ===== DRAG & DROP ===== */
-let dragSrcIdx = null;
+/* ===== SORTABLE DRAG & DROP ===== */
+let sortableInstances = [];
 
-function onDragStart(e, i) {
-  dragSrcIdx = i;
-  e.dataTransfer.effectAllowed = 'move';
-  setTimeout(() => { const el = document.getElementById('dtask-' + i); if (el) el.classList.add('dragging'); }, 0);
-}
-
-function onDragEnd(e, i) {
-  document.querySelectorAll('.task').forEach(t => t.classList.remove('dragging','drag-over'));
-}
-
-function onDragOver(e, i) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  document.querySelectorAll('.task').forEach(t => t.classList.remove('drag-over'));
-  const el = document.getElementById('dtask-' + i); if (el) el.classList.add('drag-over');
-}
-
-function onDrop(e, i) {
-  e.preventDefault();
-  if (dragSrcIdx === null || dragSrcIdx === i) return;
-  const emp = employees.find(e => e.id === currentId); if (!emp) return;
-  // Swap tasks and checked state
-  const tasks = emp.tasks;
-  const checked = emp.checked;
-  const [t] = tasks.splice(dragSrcIdx, 1);
-  const [c] = checked.splice(dragSrcIdx, 1);
-  const destIdx = dragSrcIdx < i ? i - 1 : i;
-  tasks.splice(destIdx, 0, t);
-  checked.splice(destIdx, 0, c);
-  emp.stageSizes = null; // recalculate
-  dragSrcIdx = null;
-  save(); renderDetailTasks(emp); updateDetailProgress(emp);
-}
-
-function switchTab(name, el) {
-  ['plan','docs','tests','career'].forEach(t => {
-    document.getElementById('tab-'+t).classList.toggle('hidden', name !== t);
-  });
-  document.getElementById('role-toggle').style.display = name === 'plan' ? 'flex' : 'none';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
-  if (name === 'docs') renderDocs();
-  if (name === 'tests') renderTests();
-  if (name === 'career') renderCareer();
-}
-
-function setRole(role, el) {
-  document.querySelectorAll('.rbtn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('#tab-plan .task').forEach(t => {
-    const owner = t.dataset.owner;
-    if (role === 'all') t.style.display = '';
-    else if (role === 'hr') t.style.display = owner === 'hr' ? '' : 'none';
-    else if (role === 'manager') t.style.display = owner === 'manager' ? '' : 'none';
-  });
-}
-
-function openModal() {
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('f-date').value = today;
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-hr').value = '';
-  document.getElementById('list-view').style.display = 'none';
-  document.getElementById('detail-view').style.display = 'none';
-  document.getElementById('modal').classList.remove('hidden');
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.add('hidden');
-  document.getElementById('list-view').style.display = '';
-}
-
-function createEmployee() {
-  const name = document.getElementById('f-name').value.trim();
-  if (!name) { document.getElementById('f-name').focus(); return; }
-  const role = document.getElementById('f-role').value;
-  const startDate = document.getElementById('f-date').value;
-  const mentor = document.getElementById('f-mentor').value;
-  const manager = document.getElementById('f-manager').value;
-  const hr = document.getElementById('f-hr').value.trim() || 'HR-менеджер';
-  const startDisplay = startDate ? new Date(startDate).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}) : '—';
-  const taskList = role === 'Прораб'
-    ? makeTasksForeman(startDate, manager, hr, mentor)
-    : role === 'Личный помощник'
-    ? makeTasksAssistant(startDate, manager, hr, mentor)
-    : makeTasks(startDate, manager, hr, mentor);
-  // Default adaptation end = 3 months from start
-  const adaptEndDate = startDate ? new Date(startDate) : new Date();
-  adaptEndDate.setMonth(adaptEndDate.getMonth() + 3);
-  const adaptEnd = adaptEndDate.toISOString().split('T')[0];
-  const adaptEndDisplay = adaptEndDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-
-  const emp = {
-    id: 'emp_' + Date.now(),
-    name, role, startDate, startDisplay, manager, hr, mentor,
-    adaptEnd, adaptEndDisplay,
-    tasks: taskList,
-    checked: new Array(taskList.length).fill(false)
-  };
-  employees.push(emp);
-  save();
-  closeModal();
-  renderList();
-}
-
-function deleteEmployee(id) {
-  if (!confirm('Удалить сотрудника из системы адаптации?')) return;
-  employees = employees.filter(e => e.id !== id);
-  save();
-  renderList();
-}
-
-function editStartDate() {
+function initSortable() {
+  // Destroy old instances
+  sortableInstances.forEach(s => s.destroy());
+  sortableInstances = [];
   if (!editMode) return;
+
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
-  const span = document.getElementById('d-startdate');
-  if (!span) return;
-  const input = document.createElement('input');
-  input.type = 'date';
-  input.className = 'start-date-input';
-  input.value = emp.startDate || '';
-  span.replaceWith(input);
-  input.focus();
-  function applyDate() {
-    if (input.value) {
-      const newDate = new Date(input.value);
-      emp.startDate = input.value;
-      emp.startDisplay = newDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-      emp.tasks = emp.role === 'Прораб'
-        ? makeTasksForeman(input.value, emp.manager, emp.hr, emp.mentor)
-        : emp.role === 'Личный помощник'
-        ? makeTasksAssistant(input.value, emp.manager, emp.hr, emp.mentor)
-        : makeTasks(input.value, emp.manager, emp.hr, emp.mentor);
-      emp.checked = new Array(emp.tasks.length).fill(false);
-      save();
-      renderDetailTasks(emp);
-      updateDetailProgress(emp);
-    }
-    const meta = document.getElementById('d-meta');
-    if (meta) meta.innerHTML = emp.role + ' · Выход: <span class="start-date-editable" id="d-startdate" title="Нажмите, чтобы изменить дату выхода" onclick="editStartDate()">' + emp.startDisplay + '</span> · Рук.: ' + emp.manager;
-  }
-  input.addEventListener('blur', applyDate);
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') input.blur(); });
+
+  // Make ALL tasks a single flat sortable container
+  // We wrap all .tasks divs into one virtual list using the plan container
+  const container = document.getElementById('tab-plan');
+  if (!container) return;
+
+  // Create one Sortable per .tasks block — connected so items can move between blocks
+  const taskBlocks = container.querySelectorAll('.tasks');
+  taskBlocks.forEach(block => {
+    const s = Sortable.create(block, {
+      group: 'tasks-' + currentId,  // same group = cross-block dragging
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      chosenClass: 'sortable-chosen',
+      forceFallback: false,
+      onEnd(evt) {
+        const emp = employees.find(e => e.id === currentId);
+        if (!emp) return;
+
+        // Rebuild task order from DOM
+        const allTaskEls = container.querySelectorAll('.task[id^="dtask-"]');
+        const newOrder = Array.from(allTaskEls).map(el => {
+          const idx = parseInt(el.id.replace('dtask-', ''));
+          return { task: emp.tasks[idx], checked: emp.checked[idx] };
+        });
+
+        emp.tasks = newOrder.map(x => x.task);
+        emp.checked = newOrder.map(x => x.checked);
+
+        // Recalc stageSizes from current block sizes
+        const blocks = container.querySelectorAll('.tasks');
+        const newSizes = [];
+        blocks.forEach(block => {
+          newSizes.push(block.querySelectorAll('.task[id^="dtask-"]').length);
+        });
+        emp.stageSizes = newSizes.every(s => s > 0) ? newSizes : null;
+
+        save();
+        // Re-render to update IDs and progress
+        renderDetailTasks(emp);
+        updateDetailProgress(emp);
+        initSortable();
+      }
+    });
+    sortableInstances.push(s);
+  });
 }
+
+function initDragHandles() {
+  initSortable();
+}
+
+function moveTask() {}  // no-op, kept for safety
 
 /* ===== СВОДНАЯ ТАБЛИЦА ===== */
 function showDashboard() {
