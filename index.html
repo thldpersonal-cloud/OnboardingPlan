@@ -304,10 +304,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 <div id="detail-view" class="detail">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
     <button class="back-btn" onclick="showList()" style="margin-bottom:0">← Все сотрудники</button>
-    <div style="display:flex;gap:8px" id="detail-btn-group">
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="detail-btn-group">
       <button class="btn-edit-mode" id="btn-edit-mode" onclick="toggleEditMode()">✏️ Редактировать</button>
       <button class="btn-save" id="btn-save-detail" onclick="confirmSave()" style="font-size:12px;padding:6px 14px;display:none">💾 Сохранить</button>
-      <button class="btn-add" id="btn-share" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка сотруднику</button>
+      <button class="btn-word" id="btn-word" onclick="downloadWord()">📄 Word</button>
+      <button class="btn-add" id="btn-copy-plan" onclick="openCopyModal()" style="font-size:12px;padding:6px 14px;background:#888780">📋 Копировать план</button>
+      <button class="btn-add" id="btn-share" onclick="openShareModal()" style="font-size:12px;padding:6px 14px;background:#534AB7">🔗 Ссылка</button>
     </div>
   </div>
   <div class="header-card">
@@ -353,7 +355,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="docs-grid" id="docs-grid"></div>
   </div>
   <div class="edit-mode-banner" id="edit-mode-banner">
-    ✏️ Режим редактирования активен — вносите изменения и нажмите «Сохранить»
+    <span>✏️ Режим редактирования — вносите изменения и нажмите «Сохранить»</span>
+    <div style="margin-left:auto;display:flex;gap:8px;flex-shrink:0">
+      <button class="btn-word" onclick="downloadWord()">📄 Скачать Word</button>
+      <button onclick="openCopyModal()" style="padding:4px 12px;border:0.5px solid #534AB7;border-radius:6px;background:#fff;color:#534AB7;cursor:pointer;font-size:12px;white-space:nowrap">📋 Копировать план</button>
+    </div>
   </div>
   <div id="tab-tests" class="hidden"></div>
   <div id="tab-career" class="hidden"></div>
@@ -1963,53 +1969,72 @@ function confirmCopyPlan() {
 function downloadWord() {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   const STAGE_LABELS = ['День 1', 'Первая неделя', 'Первый месяц', 'Испытательный срок'];
-  
-  let html = `<html><head><meta charset="UTF-8">
-  <style>
-    body { font-family: Arial, sans-serif; font-size: 11pt; margin: 2cm; }
-    h1 { font-size: 14pt; margin-bottom: 4px; }
-    h2 { font-size: 12pt; margin: 16px 0 8px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-    .meta { font-size: 10pt; color: #666; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-    th { background: #f0f0f0; padding: 6px 8px; text-align: left; font-size: 10pt; border: 0.5pt solid #ccc; }
-    td { padding: 6px 8px; font-size: 10pt; border: 0.5pt solid #ccc; vertical-align: top; }
-    .done { text-decoration: line-through; color: #888; }
-    .pct { font-size: 13pt; font-weight: bold; color: #1D9E75; }
-  </style></head><body>
-  <h1>План адаптации: ${emp.name}</h1>
-  <div class="meta">
-    ${emp.role} · Руководитель: ${emp.manager}<br>
-    Период адаптации: ${emp.startDisplay || '—'} — ${emp.adaptEndDisplay || '—'}<br>
-    Выполнено: <span class="pct">${Math.round(emp.checked.filter(Boolean).length / emp.tasks.length * 100)}%</span> (${emp.checked.filter(Boolean).length} из ${emp.tasks.length} задач)
-  </div>`;
+  const done_total = emp.checked.filter(Boolean).length;
+  const pct = emp.tasks.length ? Math.round(done_total / emp.tasks.length * 100) : 0;
 
+  let rows = '';
   const ranges = getDynamicStageRanges(emp);
   ranges.forEach(([a,b], si) => {
-    html += `<h2>${STAGE_LABELS[si] || 'Этап ' + (si+1)}</h2>
-    <table>
-      <tr><th>#</th><th>Задача</th><th>Ответственный</th><th>Срок</th><th>Статус</th></tr>`;
+    const label = STAGE_LABELS[si] || ('Этап ' + (si+1));
+    // Stage header row spanning all columns
+    rows += `<tr style="background:#E8E8F0">
+      <td colspan="5" style="font-weight:bold;font-size:11pt;padding:8px 6px;border:0.5pt solid #aaa">${label}</td>
+    </tr>`;
     for (let i = a; i <= b; i++) {
       const t = emp.tasks[i];
       const done = emp.checked[i];
-      html += `<tr>
-        <td>${i - a + 1}</td>
-        <td class="${done ? 'done' : ''}">${t.name}</td>
-        <td>${t.who || ''}</td>
-        <td>${t.date || '—'}</td>
-        <td>${done ? '✓ Выполнено' : '○ Ожидает'}</td>
+      const status = done ? '✓' : '○';
+      const statusColor = done ? 'color:#1D9E75' : 'color:#888';
+      rows += `<tr style="${done ? 'color:#999' : ''}">
+        <td style="width:30px;text-align:center;padding:5px 4px;border:0.5pt solid #ccc;vertical-align:top">${i - a + 1}</td>
+        <td style="padding:5px 6px;border:0.5pt solid #ccc;vertical-align:top;${done ? 'text-decoration:line-through' : ''}">${t.name}${t.note ? '<br><span style="font-size:9pt;color:#888;font-style:italic">' + t.note + '</span>' : ''}</td>
+        <td style="width:130px;padding:5px 6px;border:0.5pt solid #ccc;vertical-align:top">${t.who || ''}</td>
+        <td style="width:80px;padding:5px 6px;border:0.5pt solid #ccc;vertical-align:top;white-space:nowrap">${t.date || '—'}</td>
+        <td style="width:80px;padding:5px 6px;border:0.5pt solid #ccc;vertical-align:top;${statusColor}">${done ? '✓ Выполнено' : '○ Ожидает'}</td>
       </tr>`;
     }
-    html += '</table>';
   });
 
-  html += '</body></html>';
-  
-  const blob = new Blob([html], {type: 'application/msword'});
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="UTF-8">
+<style>
+  @page { size: A4 landscape; margin: 1.5cm 1.5cm 1.5cm 1.5cm; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; }
+  h1 { font-size: 14pt; font-weight: bold; margin: 0 0 6px 0; }
+  .meta { font-size: 9pt; color: #555; margin-bottom: 16px; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #2B579A; color: #fff; padding: 7px 6px; text-align: left; font-size: 10pt; border: 0.5pt solid #2B579A; }
+</style>
+</head>
+<body>
+<h1>План адаптации: ${emp.name}</h1>
+<div class="meta">
+  ${emp.role} &nbsp;·&nbsp; Руководитель: ${emp.manager} &nbsp;·&nbsp; Наставник: ${emp.mentor || '—'}<br>
+  Период адаптации: ${emp.startDisplay || '—'} — ${emp.adaptEndDisplay || '—'}<br>
+  Выполнено: <b style="color:#1D9E75">${pct}%</b> &nbsp;(${done_total} из ${emp.tasks.length} задач)
+</div>
+<table>
+  <thead>
+    <tr>
+      <th style="width:30px">#</th>
+      <th>Задача</th>
+      <th style="width:130px">Ответственный</th>
+      <th style="width:80px">Срок</th>
+      <th style="width:80px">Статус</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+</body></html>`;
+
+  const blob = new Blob(['﻿' + html], {type: 'application/msword;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Адаптация_${emp.name.replace(/ /g,'_')}.doc`;
+  a.download = 'Адаптация_' + emp.name.replace(/\s+/g,'_') + '.doc';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
