@@ -138,7 +138,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .doc-upload-btn:hover { color: #1a1a18; }
 .doc-link-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #888780; cursor: pointer; padding: 3px 0; border: none; background: none; }
 .doc-link-btn:hover { color: #534AB7; }
-.doc-link-input-wrap { display:none; flex-direction:column; gap:6px; margin-top:6px; }
+.doc-link-input-wrap { display:flex; align-items:center; gap:4px; margin-top:4px; }
 .doc-link-input { flex:1; font-size:11px; border:0.5px solid #d0cfc8; border-radius:6px; padding:4px 8px; outline:none; font-family:inherit; }
 .doc-link-input:focus { border-color:#534AB7; }
 .doc-link-save { font-size:11px; padding:3px 8px; background:#534AB7; color:#fff; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; }
@@ -337,6 +337,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <div class="tabs">
       <button class="tab active" onclick="switchTab('plan',this)">Задачи</button>
       <button class="tab" onclick="switchTab('docs',this)">Документы</button>
+      <button class="tab" onclick="switchTab('tmc',this)">ТМЦ</button>
       <button class="tab" onclick="switchTab('tests',this)">Тестирование</button>
       <button class="tab" onclick="switchTab('career',this)">Карьерный трек</button>
     </div>
@@ -349,7 +350,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
   </div>
   <div id="tab-plan"></div>
   <div id="tab-docs" class="hidden">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px" id="docs-add-wrap">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
       <button class="btn-add" style="font-size:12px;padding:6px 14px" onclick="addDoc()">+ Добавить документ</button>
     </div>
     <div class="docs-grid" id="docs-grid"></div>
@@ -361,6 +362,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button onclick="openCopyModal()" style="padding:4px 12px;border:0.5px solid #534AB7;border-radius:6px;background:#fff;color:#534AB7;cursor:pointer;font-size:12px;white-space:nowrap">📋 Копировать план</button>
     </div>
   </div>
+  <div id="tab-tmc" class="hidden"></div>
   <div id="tab-tests" class="hidden"></div>
   <div id="tab-career" class="hidden"></div>
   <div class="updated-hint" id="d-updated"></div>
@@ -1011,18 +1013,6 @@ const DEFAULT_DOCS = [
   { id:'d8', icon:'📝', name:'Должностная инструкция',      desc:'Обязанности бухгалтера',        tag:'req', file:null, fileName:null },
 ];
 
-// Универсальный набор документов для всех сотрудников
-const DEFAULT_DOCS_COMMON = [
-  { id:'dc1', icon:'🗺️', name:'Структура компании',          desc:'Оргсхема и подразделения',                 tag:'req', file:null, fileName:null },
-  { id:'dc2', icon:'⭐', name:'Миссия и ценности',            desc:'Цели и культура компании',                 tag:'req', file:null, fileName:null },
-  { id:'dc3', icon:'👥', name:'Контакты команды',             desc:'Список сотрудников и телефоны',            tag:'opt', file:null, fileName:null },
-  { id:'dc4', icon:'📁', name:'Папка обмена (диск W)',        desc:'Ссылка на сетевую папку \\192.168.21.100\obmen', tag:'opt', file:null, fileName:null },
-  { id:'dc5', icon:'📋', name:'Регламенты компании',          desc:'Основные регламенты и инструкции',         tag:'req', file:null, fileName:null },
-  { id:'dc6', icon:'🔒', name:'Инструктаж по ИБ',            desc:'Правила работы с данными и безопасность',  tag:'req', file:null, fileName:null },
-  { id:'dc7', icon:'📝', name:'Должностная инструкция',       desc:'Обязанности и зоны ответственности',       tag:'req', file:null, fileName:null },
-  { id:'dc8', icon:'🎓', name:'Обучение (learn.tn.ru)',       desc:'Курсы и инструкции ТехноНиколь',           tag:'req', file:null, fileName:null },
-];
-
 const PEOPLE = [
   { owner: 'hr',         who: 'Калугина Екатерина', label: 'Калугина Екатерина — HR' },
   { owner: 'chief',      who: 'Бронникова Марина',  label: 'Бронникова Марина — главный бухгалтер' },
@@ -1345,28 +1335,8 @@ function editName(i) {
 }
 
 function getEmpDocs(emp) {
-  if (!emp.docs || emp.docs.length === 0) {
-    emp.docs = JSON.parse(JSON.stringify(DEFAULT_DOCS_COMMON));
-  }
+  if (!emp.docs) emp.docs = JSON.parse(JSON.stringify(DEFAULT_DOCS));
   return emp.docs;
-}
-
-function switchTab(name, el) {
-  try {
-    ['plan','docs','tests','career'].forEach(t => {
-      const tab = document.getElementById('tab-' + t);
-      if (tab) tab.classList.toggle('hidden', name !== t);
-    });
-    const rt = document.getElementById('role-toggle');
-    if (rt) rt.style.display = name === 'plan' ? 'flex' : 'none';
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    if (el) el.classList.add('active');
-    const emp = employees.find(e => e.id === currentId);
-    if (!emp) return;
-    if (name === 'docs') renderDocs();
-    if (name === 'tests') renderTests();
-    if (name === 'career') renderCareer();
-  } catch(e) { console.error('switchTab error:', e); }
 }
 
 function renderDocs() {
@@ -1375,9 +1345,6 @@ function renderDocs() {
   const docs = getEmpDocs(emp);
   const grid = document.getElementById('docs-grid');
   if (!grid) return;
-  // Show add button only in edit mode
-  const addWrap = document.getElementById('docs-add-wrap');
-  if (addWrap) addWrap.style.display = (isAdmin && editMode) ? 'flex' : 'none';
   grid.innerHTML = docs.map((doc, di) => {
     const tagLabel = doc.tag === 'req' ? 'Обязательно' : 'Справочно';
     const tagCls = doc.tag === 'req' ? 'tag-req' : 'tag-opt';
@@ -1393,13 +1360,13 @@ function renderDocs() {
     const linkRow = doc.link
       ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
            <div class="doc-link-val"><a href="${doc.link}" target="_blank" rel="noopener">🔗 ${doc.linkLabel || doc.link}</a></div>
-           ${isAdmin ? `<button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>` : ''}
+           ${(isAdmin && editMode) ? `<button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>` : ''}
          </div>`
-      : isAdmin ? `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
-         <div id="doc-link-input-${di}" style="display:none;flex-direction:column;gap:4px;margin-top:4px" class="doc-link-input-wrap">
-           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." style="width:100%"/>
-           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название (необязательно)" style="width:100%"/>
-           <button class="doc-link-save" onclick="saveDocLink(${di})" style="align-self:flex-end">Сохранить</button>
+      : (isAdmin && editMode) ? `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
+         <div id="doc-link-input-${di}" style="display:none" class="doc-link-input-wrap">
+           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." />
+           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название" style="max-width:90px"/>
+           <button class="doc-link-save" onclick="saveDocLink(${di})">OK</button>
          </div>` : '';
 
     const fileArea = `<div class="doc-file-area">${fileRow}<div style="margin-top:4px">${linkRow}</div></div>`;
@@ -1476,7 +1443,7 @@ function removeFile(di) {
 
 function showDocLinkInput(di) {
   const wrap = document.getElementById('doc-link-input-' + di);
-  if (wrap) { wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; document.getElementById('doc-link-url-' + di).focus(); }
+  if (wrap) { wrap.style.display = 'flex'; document.getElementById('doc-link-url-' + di).focus(); }
 }
 
 function saveDocLink(di) {
@@ -1620,6 +1587,78 @@ function updateStageBadges(emp) {
 }
 
 /* ===== ТЕСТИРОВАНИЕ ===== */
+/* ===== ТМЦ (рабочее место) ===== */
+const DEFAULT_TMC = [
+  'Ключ от офиса (офис 1)',
+  'Ключ от офиса (офис 2)',
+  'Ключ от офиса (Сота)',
+  'Топливная карта',
+  'Сим-карта',
+  'Ноутбук',
+  'Мышка для ноутбука',
+];
+
+function getEmpTMC(emp) {
+  if (!emp.tmc || emp.tmc.length === 0) {
+    emp.tmc = DEFAULT_TMC.map(name => ({ name, done: false }));
+  }
+  return emp.tmc;
+}
+
+function renderTMC() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const items = getEmpTMC(emp);
+  const container = document.getElementById('tab-tmc');
+  const done = items.filter(i => i.done).length;
+
+  const rows = items.map((item, i) => `
+    <div class="tmc-item">
+      <div class="tmc-check ${item.done ? 'done' : ''}" onclick="toggleTMC(${i})">${item.done ? '✓' : ''}</div>
+      <div class="tmc-name ${item.done ? 'done' : ''}">${item.name}</div>
+      ${(isAdmin && editMode) ? `<button class="tmc-del" onclick="deleteTMC(${i})" title="Удалить">×</button>` : ''}
+    </div>`).join('');
+
+  container.innerHTML = `
+    <div class="tmc-summary">Выдано ${done} из ${items.length}</div>
+    <div class="tmc-list">
+      ${rows}
+      ${(isAdmin && editMode) ? `
+      <div class="tmc-add-row">
+        <input class="tmc-add-input" id="tmc-new-name" placeholder="Новое наименование..." onkeydown="if(event.key==='Enter'){addTMC()}">
+        <button class="tmc-add-btn" onclick="addTMC()">+ Добавить</button>
+      </div>` : ''}
+    </div>`;
+}
+
+function toggleTMC(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const items = getEmpTMC(emp);
+  items[i].done = !items[i].done;
+  save();
+  renderTMC();
+}
+
+function addTMC() {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const input = document.getElementById('tmc-new-name');
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const items = getEmpTMC(emp);
+  items.push({ name, done: false });
+  input.value = '';
+  save();
+  renderTMC();
+  setTimeout(() => document.getElementById('tmc-new-name')?.focus(), 50);
+}
+
+function deleteTMC(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const items = getEmpTMC(emp);
+  items.splice(i, 1);
+  save();
+  renderTMC();
+}
+
 function renderTests() {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   if (!emp.tests) emp.tests = [];
