@@ -247,6 +247,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .share-url { font-size:11px; color:#534AB7; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .btn-copy { font-size:11px; padding:3px 10px; border:0.5px solid #534AB7; border-radius:6px; background:#fff; color:#534AB7; cursor:pointer; white-space:nowrap; }
 .btn-copy:hover { background:#EEEDFE; }
+/* TMC TABLE */
+.tmc-table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden; border:0.5px solid #e0dfd8; }
+.tmc-table th { background:#f5f4f0; padding:10px 14px; text-align:left; font-size:12px; font-weight:500; color:#888780; border-bottom:0.5px solid #e0dfd8; }
+.tmc-table th:last-child, .tmc-table td:last-child { text-align:center; width:90px; }
+.tmc-table td { padding:10px 14px; font-size:14px; color:#1a1a18; border-bottom:0.5px solid #f0efe8; }
+.tmc-table tr:last-child td { border-bottom:none; }
+.tmc-table tr:hover td { background:#fafaf8; }
+.tmc-name.done { text-decoration:line-through; color:#888780; }
+.tmc-check { width:24px; height:24px; border-radius:6px; border:1.5px solid #d0cfc8; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.15s; }
+.tmc-check.done { background:#1D9E75; border-color:#1D9E75; color:#fff; }
+.tmc-del-cell { width:36px; text-align:center !important; }
+.tmc-del { width:22px; height:22px; border-radius:50%; border:none; background:transparent; color:#d0cfc8; font-size:16px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.tmc-del:hover { background:#FAECE7; color:#A32D2D; }
+.tmc-add-row td { padding:12px 14px; }
+.tmc-add-input { width:100%; padding:7px 10px; border:0.5px solid #d0cfc8; border-radius:8px; font-size:13px; outline:none; font-family:inherit; }
+.tmc-add-input:focus { border-color:#534AB7; }
+.tmc-add-btn { padding:7px 16px; background:#1a1a18; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap; }
+.tmc-summary { font-size:12px; color:#888780; margin-bottom:10px; }
+.tmc-wrap { overflow-x:auto; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 </head>
@@ -1378,21 +1397,28 @@ function renderDocs() {
     // Link row
     const linkRow = doc.link
       ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-           <div class="doc-link-val"><a href="${doc.link}" target="_blank" rel="noopener">🔗 ${doc.linkLabel || doc.link}</a></div>
+           <div class="doc-link-val" id="doc-link-display-${di}"><a href="${doc.link}" target="_blank" rel="noopener">🔗 ${doc.linkLabel || doc.link}</a></div>
+           ${(isAdmin && editMode) ? `<button class="doc-action-btn" onclick="showDocLinkInput(${di})" title="Изменить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✎</button>` : ''}
            ${(isAdmin && editMode) ? `<button class="doc-action-btn doc-action-del" onclick="removeDocLink(${di})" title="Удалить ссылку" style="opacity:1;flex-shrink:0;padding:2px 7px">✕</button>` : ''}
+         </div>
+         <div id="doc-link-input-${di}" style="display:none;flex-direction:column;gap:4px;margin-top:4px" class="doc-link-input-wrap">
+           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." style="width:100%" value="${doc.link}"/>
+           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название (необязательно)" style="width:100%" value="${doc.linkLabel || ''}"/>
+           <button class="doc-link-save" onclick="saveDocLink(${di})" style="align-self:flex-end">Сохранить</button>
          </div>`
       : (isAdmin && editMode) ? `<button class="doc-link-btn" onclick="showDocLinkInput(${di})">🔗 Добавить ссылку</button>
-         <div id="doc-link-input-${di}" style="display:none" class="doc-link-input-wrap">
-           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." />
-           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название" style="max-width:90px"/>
-           <button class="doc-link-save" onclick="saveDocLink(${di})">OK</button>
+         <div id="doc-link-input-${di}" style="display:none;flex-direction:column;gap:4px;margin-top:4px" class="doc-link-input-wrap">
+           <input class="doc-link-input" id="doc-link-url-${di}" placeholder="https://..." style="width:100%"/>
+           <input class="doc-link-input" id="doc-link-label-${di}" placeholder="Название (необязательно)" style="width:100%"/>
+           <button class="doc-link-save" onclick="saveDocLink(${di})" style="align-self:flex-end">Сохранить</button>
          </div>` : '';
 
     const fileArea = `<div class="doc-file-area">${fileRow}<div style="margin-top:4px">${linkRow}</div></div>`;
     return `<div class="doc-card" id="doc-${di}">
       <div class="doc-actions">
         <button class="doc-action-btn" onclick="toggleDocTag(${di})" title="Сменить тип">${doc.tag==='req'?'→ Справочно':'→ Обязательно'}</button>
-        <button class="doc-action-btn doc-action-del" onclick="deleteDoc(${di})" title="Удалить">✕</button>
+        ${(isAdmin && editMode) ? `<button class="doc-action-btn" onclick="duplicateDoc(${di})" title="Скопировать карточку">⎘ Копировать</button>` : ''}
+        ${(isAdmin && editMode) ? `<button class="doc-action-btn doc-action-del" onclick="deleteDoc(${di})" title="Удалить">✕</button>` : ''}
       </div>
       <div class="doc-icon">${doc.icon}</div>
       <div class="doc-name" onclick="editDocField(${di},'name')" title="Нажмите, чтобы изменить">${doc.name}</div>
@@ -1449,6 +1475,17 @@ function addDoc() {
   if (!emp) return;
   getEmpDocs(emp);
   emp.docs.push({ id:'d'+Date.now(), icon:'📄', name:'Новый документ', desc:'Описание', tag:'opt', file:null, fileName:null });
+  save(); renderDocs();
+}
+
+function duplicateDoc(di) {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp || !emp.docs[di]) return;
+  const original = emp.docs[di];
+  const copy = JSON.parse(JSON.stringify(original));
+  copy.id = 'd' + Date.now();
+  copy.name = original.name + ' (копия)';
+  emp.docs.splice(di + 1, 0, copy);
   save(); renderDocs();
 }
 
@@ -1629,23 +1666,34 @@ function renderTMC() {
   const items = getEmpTMC(emp);
   const container = document.getElementById('tab-tmc');
   const done = items.filter(i => i.done).length;
+  const showDel = isAdmin && editMode;
 
   const rows = items.map((item, i) => `
-    <div class="tmc-item">
-      <div class="tmc-check ${item.done ? 'done' : ''}" onclick="toggleTMC(${i})">${item.done ? '✓' : ''}</div>
-      <div class="tmc-name ${item.done ? 'done' : ''}">${item.name}</div>
-      ${(isAdmin && editMode) ? `<button class="tmc-del" onclick="deleteTMC(${i})" title="Удалить">×</button>` : ''}
-    </div>`).join('');
+    <tr>
+      <td><span class="tmc-name ${item.done ? 'done' : ''}">${item.name}</span></td>
+      <td><div class="tmc-check ${item.done ? 'done' : ''}" onclick="toggleTMC(${i})" title="Отметить выдачу">${item.done ? '✓' : ''}</div></td>
+      ${showDel ? `<td class="tmc-del-cell"><button class="tmc-del" onclick="deleteTMC(${i})" title="Удалить">×</button></td>` : ''}
+    </tr>`).join('');
+
+  const addRow = (isAdmin && editMode) ? `
+    <tr class="tmc-add-row">
+      <td colspan="${showDel ? 3 : 2}" style="display:flex;gap:8px">
+        <input class="tmc-add-input" id="tmc-new-name" placeholder="Новое наименование..." onkeydown="if(event.key==='Enter'){addTMC()}">
+        <button class="tmc-add-btn" onclick="addTMC()">+ Добавить</button>
+      </td>
+    </tr>` : '';
 
   container.innerHTML = `
     <div class="tmc-summary">Выдано ${done} из ${items.length}</div>
-    <div class="tmc-list">
-      ${rows}
-      ${(isAdmin && editMode) ? `
-      <div class="tmc-add-row">
-        <input class="tmc-add-input" id="tmc-new-name" placeholder="Новое наименование..." onkeydown="if(event.key==='Enter'){addTMC()}">
-        <button class="tmc-add-btn" onclick="addTMC()">+ Добавить</button>
-      </div>` : ''}
+    <div class="tmc-wrap">
+    <table class="tmc-table">
+      <thead><tr>
+        <th>Наименование</th>
+        <th>Выдано</th>
+        ${showDel ? '<th></th>' : ''}
+      </tr></thead>
+      <tbody>${rows}${addRow}</tbody>
+    </table>
     </div>`;
 }
 
