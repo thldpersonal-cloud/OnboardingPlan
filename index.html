@@ -1339,6 +1339,25 @@ function getEmpDocs(emp) {
   return emp.docs;
 }
 
+function switchTab(name, el) {
+  try {
+    ['plan','docs','tmc','tests','career'].forEach(t => {
+      const tab = document.getElementById('tab-' + t);
+      if (tab) tab.classList.toggle('hidden', name !== t);
+    });
+    const rt = document.getElementById('role-toggle');
+    if (rt) rt.style.display = name === 'plan' ? 'flex' : 'none';
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    if (el) el.classList.add('active');
+    const emp = employees.find(e => e.id === currentId);
+    if (!emp) return;
+    if (name === 'docs') renderDocs();
+    if (name === 'tmc') renderTMC();
+    if (name === 'tests') renderTests();
+    if (name === 'career') renderCareer();
+  } catch(e) { console.error('switchTab error:', e); }
+}
+
 function renderDocs() {
   const emp = employees.find(e => e.id === currentId);
   if (!emp) return;
