@@ -47,6 +47,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .s-pending { background: #f1efe8; color: #888780; }
 .emp-delete { padding: 6px 8px; background: transparent; border: none; cursor: pointer; color: #c8c7c0; border-radius: 6px; font-size: 16px; }
 .emp-delete:hover { color: #A32D2D; background: #FCEBEB; }
+.list-filter-tabs { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+.list-filter-tab { padding:6px 14px; border-radius:20px; border:0.5px solid #e0dfd8; background:#fff; font-size:12px; cursor:pointer; color:#888780; }
+.list-filter-tab.active { background:#1a1a18; color:#fff; border-color:#1a1a18; }
+.archive-btn { padding:4px 10px; border-radius:6px; border:0.5px solid #d0cfc8; background:#fff; color:#888780; font-size:11px; cursor:pointer; white-space:nowrap; }
+.archive-btn:hover { border-color:#534AB7; color:#534AB7; }
+.archive-btn.passed:hover { border-color:#1D9E75; color:#1D9E75; }
+.archive-btn.failed:hover { border-color:#A32D2D; color:#A32D2D; }
+.restore-btn { padding:4px 10px; border-radius:6px; border:0.5px solid #534AB7; background:#fff; color:#534AB7; font-size:11px; cursor:pointer; white-space:nowrap; }
+.restore-btn:hover { background:#EEEDFE; }
 
 /* DETAIL VIEW */
 .detail { display: none; }
@@ -255,15 +264,31 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .tmc-table tr:last-child td { border-bottom:none; }
 .tmc-table tr:hover td { background:#fafaf8; }
 .tmc-name.done { text-decoration:line-through; color:#888780; }
-.tmc-check { width:24px; height:24px; border-radius:6px; border:1.5px solid #d0cfc8; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px; transition:all 0.15s; }
-.tmc-check.done { background:#1D9E75; border-color:#1D9E75; color:#fff; }
-.tmc-check-readonly { cursor:default; opacity:0.6; }
+.tmc-toggle-btn { padding:6px 14px; border-radius:8px; border:none; cursor:pointer; font-size:12px; font-weight:500; white-space:nowrap; }
+.tmc-toggle-give { background:#1D9E75; color:#fff; }
+.tmc-toggle-give:hover { background:#178a63; }
+.tmc-toggle-undo { background:#f5f4f0; color:#888780; border:0.5px solid #d0cfc8; }
+.tmc-toggle-undo:hover { background:#FAECE7; color:#A32D2D; }
+.tmc-readonly-hint { font-size:11px; color:#c8c7c0; font-style:italic; }
+.tmc-checkbox { width:20px; height:20px; cursor:pointer; accent-color:#1D9E75; }
+.tmc-status-done { color:#1D9E75; font-size:13px; font-weight:500; }
+.tmc-status-pending { color:#888780; font-size:13px; }
 .tmc-date { font-size:12px; color:#888780; }
+.test-name-cell { cursor:pointer; font-size:13px; }
+.test-comment-cell { font-size:11px; color:#888780; margin-top:3px; font-style:italic; }
+.test-link { font-size:12px; color:#534AB7; text-decoration:none; }
+.test-link:hover { text-decoration:underline; }
+.test-score-cell { cursor:pointer; font-size:13px; font-weight:500; padding:2px 8px; border-radius:6px; display:inline-block; }
+.test-score-cell.good { background:#EAF3DE; color:#2A5C1A; }
+.test-score-cell.ok { background:#FAEEDA; color:#854F0B; }
+.test-score-cell.bad { background:#FAECE7; color:#993C1D; }
+.test-date-cell, .test-who-cell { cursor:pointer; font-size:13px; color:#444; }
 .tmc-del-cell { width:36px; text-align:center !important; }
 .tmc-del { width:22px; height:22px; border-radius:50%; border:none; background:transparent; color:#d0cfc8; font-size:16px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
 .tmc-del:hover { background:#FAECE7; color:#A32D2D; }
-.tmc-add-row td { padding:12px 14px; }
-.tmc-add-input { width:100%; padding:7px 10px; border:0.5px solid #d0cfc8; border-radius:8px; font-size:13px; outline:none; font-family:inherit; }
+.tmc-add-row td { padding:12px 14px; display:flex !important; gap:8px; align-items:center; }
+.tmc-add-row-outside { display:flex; gap:8px; align-items:center; padding:12px 14px; background:#fff; border:0.5px solid #e0dfd8; border-top:none; border-radius:0 0 12px 12px; }
+.tmc-add-input { flex:1; min-width:200px; padding:7px 10px; border:0.5px solid #d0cfc8; border-radius:8px; font-size:13px; outline:none; font-family:inherit; }
 .tmc-add-input:focus { border-color:#534AB7; }
 .tmc-add-btn { padding:7px 16px; background:#1a1a18; color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; white-space:nowrap; }
 .tmc-summary { font-size:12px; color:#888780; margin-bottom:10px; }
@@ -289,6 +314,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
       <button class="btn-add" id="btn-add-emp" onclick="openModal()" style="display:none">+ Добавить сотрудника</button>
     </div>
   </div>
+  <div class="list-filter-tabs">
+    <button class="list-filter-tab active" id="lf-active" onclick="switchListFilter('active')">Активные</button>
+    <button class="list-filter-tab" id="lf-passed" onclick="switchListFilter('passed')">✅ Прошли испытательный срок</button>
+    <button class="list-filter-tab" id="lf-failed" onclick="switchListFilter('failed')">❌ Не прошли испытательный срок</button>
+  </div>
   <div class="emp-list" id="emp-list"></div>
 </div>
 
@@ -304,6 +334,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
     <button class="dash-tab active" onclick="switchDashTab('today',this)">Сегодня</button>
     <button class="dash-tab" onclick="switchDashTab('week',this)">Эта неделя</button>
     <button class="dash-tab" onclick="switchDashTab('all',this)">Все активные</button>
+    <button class="dash-tab" onclick="switchDashTab('stats',this)">📈 Статистика</button>
   </div>
   <div id="dash-content"></div>
 </div>
@@ -794,6 +825,26 @@ function editEmpName(id) {
   });
 }
 
+function getActiveTabName() {
+  const tabs = ['plan','docs','tmc','tests','career'];
+  for (const t of tabs) {
+    const el = document.getElementById('tab-' + t);
+    if (el && !el.classList.contains('hidden')) return t;
+  }
+  return 'plan';
+}
+
+function rerenderActiveTab() {
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) return;
+  const active = getActiveTabName();
+  if (active === 'plan') { renderDetailTasks(emp); updateDetailProgress(emp); }
+  else if (active === 'docs') renderDocs();
+  else if (active === 'tmc') renderTMC();
+  else if (active === 'tests') renderTests();
+  else if (active === 'career') renderCareer();
+}
+
 function toggleEditMode() {
   editMode = !editMode;
   const btn = document.getElementById('btn-edit-mode');
@@ -805,19 +856,13 @@ function toggleEditMode() {
     if (saveBtn) { saveBtn.style.display = ''; }
     if (banner) banner.classList.add('visible');
   } else {
-    // Cancel — reload from cloud without saving
     editMode = false;
     btn.textContent = '✏️ Редактировать';
     btn.classList.remove('active');
     if (saveBtn) { saveBtn.style.display = 'none'; }
     if (banner) banner.classList.remove('visible');
-    // Re-render to remove edit controls
-    const emp = employees.find(e => e.id === currentId);
-    if (emp) { renderDetailTasks(emp); updateDetailProgress(emp); }
   }
-  // Re-render tasks to show/hide edit controls
-  const emp = employees.find(e => e.id === currentId);
-  if (emp) renderDetailTasks(emp);
+  rerenderActiveTab();
 }
 
 function confirmSave() {
@@ -912,29 +957,83 @@ function editAdaptDate(id, which) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') { renderList(); } });
 }
 
+let currentListFilter = 'active';
+
+function switchListFilter(filter) {
+  currentListFilter = filter;
+  document.querySelectorAll('.list-filter-tab').forEach(t => t.classList.remove('active'));
+  const map = {active:'lf-active', passed:'lf-passed', failed:'lf-failed'};
+  const btn = document.getElementById(map[filter]);
+  if (btn) btn.classList.add('active');
+  renderList();
+}
+
+function getFilteredEmployees() {
+  return employees.filter(e => {
+    const status = e.archiveStatus || 'active';
+    return status === currentListFilter;
+  });
+}
+
+function archiveEmployee(id, status) {
+  const emp = employees.find(e => e.id === id); if (!emp) return;
+  const label = status === 'passed' ? 'прошедшим испытательный срок' : 'не прошедшим испытательный срок';
+  if (!confirm(`Перенести ${emp.name} в архив как ${label}?`)) return;
+  emp.archiveStatus = status;
+  emp.archivedDate = new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  save();
+  renderList();
+}
+
+function restoreEmployee(id) {
+  const emp = employees.find(e => e.id === id); if (!emp) return;
+  if (!confirm(`Вернуть ${emp.name} в активный список?`)) return;
+  emp.archiveStatus = 'active';
+  emp.archivedDate = null;
+  save();
+  renderList();
+}
+
 function renderList() {
   const el = document.getElementById('emp-list');
   const label = document.getElementById('emp-count-label');
-  label.textContent = employees.length === 0 ? 'Нет сотрудников' : employees.length + ' ' + (employees.length===1?'сотрудник':employees.length<5?'сотрудника':'сотрудников') + ' на адаптации';
+  const filtered = getFilteredEmployees();
 
-  if (employees.length === 0) {
-    el.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Нет сотрудников</div><div>Нажмите «Добавить сотрудника», чтобы создать первый план адаптации</div></div>';
+  const filterLabel = currentListFilter === 'active' ? 'на адаптации' : currentListFilter === 'passed' ? 'прошли испытательный срок' : 'не прошли испытательный срок';
+  label.textContent = filtered.length === 0 ? 'Нет сотрудников' : filtered.length + ' ' + (filtered.length===1?'сотрудник':filtered.length<5?'сотрудника':'сотрудников') + ' ' + filterLabel;
+
+  if (filtered.length === 0) {
+    const emptyMsg = currentListFilter === 'active'
+      ? 'Нажмите «Добавить сотрудника», чтобы создать первый план адаптации'
+      : 'Сотрудники появятся здесь после переноса в архив';
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">Нет сотрудников</div><div>${emptyMsg}</div></div>`;
     return;
   }
 
-  el.innerHTML = employees.map((emp, idx) => {
+  el.innerHTML = filtered.map((emp) => {
+    const idx = employees.indexOf(emp);
     const done = emp.checked.filter(Boolean).length;
     const pct = Math.round(done / getTotal(emp) * 100);
     const c = getColor(idx);
-    const stage = currentStageLabel(emp);
     const endDisp = emp.adaptEndDisplay || '—';
-    // Проверяем просрочку: срок прошёл, а план не выполнен
     const today = new Date(); today.setHours(0,0,0,0);
     const endDate = emp.adaptEnd ? new Date(emp.adaptEnd) : null;
-    const isOverdue = endDate && today > endDate && pct < 100;
+    const isOverdue = currentListFilter === 'active' && endDate && today > endDate && pct < 100;
     const pctColor = isOverdue ? '#A32D2D' : '#1a1a18';
     const pbarColor = isOverdue ? '#E8A0A0' : '#1D9E75';
     const overdueHint = isOverdue ? `<div style="font-size:10px;color:#A32D2D;margin-top:2px">⚠ срок истёк</div>` : '';
+
+    let actionBtns = '';
+    if (currentListFilter === 'active') {
+      actionBtns = listEditMode ? `
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+          <button class="archive-btn passed" onclick="event.stopPropagation();archiveEmployee('${emp.id}','passed')" title="Прошёл испытательный срок">✅ Прошёл</button>
+          <button class="archive-btn failed" onclick="event.stopPropagation();archiveEmployee('${emp.id}','failed')" title="Не прошёл испытательный срок">❌ Не прошёл</button>
+        </div>` : '';
+    } else {
+      actionBtns = `<button class="restore-btn" onclick="event.stopPropagation();restoreEmployee('${emp.id}')" title="Вернуть в активные">↩ Вернуть</button>`;
+    }
+
     return `<div class="emp-card" onclick="showDetail('${emp.id}')" style="${isOverdue ? 'border-color:#E8A0A0;' : ''}">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${initials(emp.name)}</div>
       <div class="emp-info">
@@ -946,6 +1045,7 @@ function renderList() {
           —
           <span class="${listEditMode ? 'emp-period-date' : ''}" onclick="event.stopPropagation();editAdaptDate('${emp.id}','end')" title="${listEditMode ? 'Изменить дату окончания' : ''}" style="${isOverdue ? 'color:#A32D2D' : ''};${listEditMode ? '' : 'cursor:default'}">${endDisp}</span>
         </div>
+        ${emp.archivedDate ? `<div style="font-size:11px;color:#888780;margin-top:2px">В архиве с ${emp.archivedDate}</div>` : ''}
       </div>
       <div class="emp-progress">
         <div class="emp-pct" style="color:${pctColor}">${pct}%</div>
@@ -953,6 +1053,7 @@ function renderList() {
         <div style="font-size:11px;color:#888780;margin-top:3px">${done}/${getTotal(emp)} задач</div>
         ${overdueHint}
       </div>
+      ${actionBtns}
       ${listEditMode ? `<button class="emp-delete" onclick="event.stopPropagation();deleteEmployee('${emp.id}')" title="Удалить">✕</button>` : ''}
     </div>`;
   }).join('');
@@ -1130,7 +1231,16 @@ function renderDetailTasks(emp) {
           ? `<div class="task-note-text" onclick="${(isAdmin&&editMode)||isManager?`editTaskNote(${i})`:''}" title="Нажмите, чтобы изменить" style="white-space:pre-wrap;word-break:break-word">💬 ${t.note}</div>`
           : `<textarea class="task-note-input" placeholder="Добавить комментарий к задаче..." rows="1" onblur="saveTaskNote(${i},this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur()}"></textarea>`
         }
-      </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text" style="white-space:pre-wrap;word-break:break-word">💬 ${t.note}</div></div>` : '')}`;
+      </div>` : (t.note ? `<div class="task-note-wrap"><div class="task-note-text" style="white-space:pre-wrap;word-break:break-word">💬 ${t.note}</div></div>` : '')}
+      ${(isAdmin && editMode) ? `
+      <div class="task-result-wrap">
+        <div class="task-result-label">🎯 Образ результата</div>
+        <textarea class="task-result-input" placeholder="Опишите подробно, что должно получиться в итоге выполнения этой задачи..." rows="1" onblur="saveTaskResult(${i},this.value)" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'">${t.result || ''}</textarea>
+      </div>` : (t.result ? `
+      <div class="task-result-wrap">
+        <div class="task-result-label">🎯 Образ результата</div>
+        <div class="task-result-text">${t.result}</div>
+      </div>` : '')}`;
     }
     if (isAdmin&&editMode) html += `<button class="btn-add-task" onclick="addTask(${si})">＋ Добавить задачу</button>`;
     html += '</div></div>';
@@ -1293,6 +1403,15 @@ function deleteCommentByBlock(block, visIdx) {
 
 function deleteComment(ci) {
   deleteCommentByBlock('other', ci);
+}
+
+function saveTaskResult(i, val) {
+  if (isAdmin && !editMode) return;
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const trimmed = val.trim();
+  if (emp.tasks[i].result === trimmed) return;
+  emp.tasks[i].result = trimmed;
+  save();
 }
 
 function saveTaskNote(i, val) {
@@ -1658,8 +1777,15 @@ const DEFAULT_TMC = [
 
 function getEmpTMC(emp) {
   if (!emp.tmc || emp.tmc.length === 0) {
-    emp.tmc = DEFAULT_TMC.map(name => ({ name, done: false }));
+    emp.tmc = DEFAULT_TMC.map(name => ({ name, given: false, confirmed: false, date: null }));
   }
+  // migrate old format (done -> given+confirmed)
+  emp.tmc.forEach(item => {
+    if (item.given === undefined) {
+      item.given = !!item.done;
+      item.confirmed = !!item.done;
+    }
+  });
   return emp.tmc;
 }
 
@@ -1667,52 +1793,61 @@ function renderTMC() {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   const items = getEmpTMC(emp);
   const container = document.getElementById('tab-tmc');
-  const done = items.filter(i => i.done).length;
-  const showDel = isAdmin && editMode;
-  const canCheck = isAdmin && editMode;
+  const done = items.filter(i => i.confirmed).length;
 
   const rows = items.map((item, i) => `
     <tr>
-      <td><span class="tmc-name ${item.done ? 'done' : ''}">${item.name}</span></td>
-      <td><div class="tmc-check ${item.done ? 'done' : ''} ${canCheck ? '' : 'tmc-check-readonly'}" ${canCheck ? `onclick="toggleTMC(${i})"` : ''} title="${canCheck ? 'Отметить выдачу' : 'Доступно только в режиме редактирования'}">${item.done ? '✓' : ''}</div></td>
-      <td><span class="tmc-date">${item.date || (item.done ? '—' : '')}</span></td>
-      ${showDel ? `<td class="tmc-del-cell"><button class="tmc-del" onclick="deleteTMC(${i})" title="Удалить">×</button></td>` : ''}
+      <td><span class="tmc-name ${item.confirmed ? 'done' : ''}">${item.name}</span></td>
+      <td style="text-align:center"><input type="checkbox" class="tmc-checkbox" ${item.given ? 'checked' : ''} onchange="toggleTMCGiven(${i})"></td>
+      <td style="text-align:center"><input type="checkbox" class="tmc-checkbox" ${item.confirmed ? 'checked' : ''} ${item.given ? '' : 'disabled'} onchange="toggleTMCConfirmed(${i})" title="${item.given ? '' : 'Сначала отметьте «Выдать»'}"></td>
+      <td><span class="tmc-date">${item.date || ''}</span></td>
+      <td class="tmc-del-cell"><button class="tmc-del" onclick="deleteTMC(${i})" title="Удалить">×</button></td>
     </tr>`).join('');
 
-  const addRow = (isAdmin && editMode) ? `
+  const addRow = `
     <tr class="tmc-add-row">
-      <td colspan="${showDel ? 4 : 3}" style="display:flex;gap:8px">
+      <td colspan="5" style="display:flex;gap:8px">
         <input class="tmc-add-input" id="tmc-new-name" placeholder="Новое наименование..." onkeydown="if(event.key==='Enter'){addTMC()}">
         <button class="tmc-add-btn" onclick="addTMC()">+ Добавить</button>
       </td>
-    </tr>` : '';
+    </tr>`;
 
   container.innerHTML = `
-    <div class="tmc-summary">Выдано ${done} из ${items.length}${!canCheck ? ' · отметки доступны в режиме редактирования' : ''}</div>
+    <div class="tmc-summary">Выдано и подтверждено ${done} из ${items.length}</div>
     <div class="tmc-wrap">
     <table class="tmc-table">
       <thead><tr>
         <th>Наименование</th>
+        <th>Выдать</th>
         <th>Выдано</th>
         <th>Дата выдачи</th>
-        ${showDel ? '<th></th>' : ''}
+        <th></th>
       </tr></thead>
       <tbody>${rows}${addRow}</tbody>
     </table>
     </div>`;
 }
 
-function toggleTMC(i) {
-  if (!(isAdmin && editMode)) return;
+function toggleTMCGiven(i) {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   const items = getEmpTMC(emp);
-  items[i].done = !items[i].done;
-  if (items[i].done) {
+  items[i].given = !items[i].given;
+  if (items[i].given) {
     const today = new Date();
     items[i].date = today.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   } else {
     items[i].date = null;
+    items[i].confirmed = false; // снять подтверждение если отменили выдачу
   }
+  save();
+  renderTMC();
+}
+
+function toggleTMCConfirmed(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const items = getEmpTMC(emp);
+  if (!items[i].given) return; // нельзя подтвердить без выдачи
+  items[i].confirmed = !items[i].confirmed;
   save();
   renderTMC();
 }
@@ -1742,57 +1877,100 @@ function renderTests() {
   const emp = employees.find(e => e.id === currentId); if (!emp) return;
   if (!emp.tests) emp.tests = [];
   const container = document.getElementById('tab-tests');
+  const canEdit = isAdmin && editMode;
 
-  const scoreClass = s => s >= 80 ? 'good' : s >= 60 ? 'ok' : 'bad';
-  const testCards = emp.tests.length
-    ? emp.tests.map((t, i) => `
-      <div class="test-card">
-        <div class="test-card-header">
-          <div>
-            <div class="test-name">${t.name}</div>
-            <div class="test-meta">${t.date} · ${t.who || ''}</div>
-            ${t.comment ? `<div class="test-comment">${t.comment}</div>` : ''}
-          </div>
-          <div style="text-align:right">
-            <div class="test-score ${scoreClass(+t.score)}">${t.score}%</div>
-            ${isAdmin ? `<button onclick="deleteTest(${i})" style="font-size:11px;color:#A32D2D;background:none;border:none;cursor:pointer;margin-top:4px">удалить</button>` : ''}
-          </div>
-        </div>
-      </div>`).join('')
-    : '<div class="career-empty">Результатов тестирования пока нет</div>';
+  const rows = emp.tests.map((t, i) => `
+    <tr>
+      <td><span class="test-name-cell" ${canEdit ? `onclick="editTestField(${i},'name')"` : ''}>${t.name}</span></td>
+      <td>
+        ${t.link
+          ? `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+               <a href="${t.link}" target="_blank" rel="noopener" class="test-link">🔗 Открыть результат</a>
+               ${canEdit ? `<button class="tmc-del" onclick="showTestLinkInput(${i})" title="Изменить">✎</button><button class="tmc-del" onclick="removeTestLink(${i})" title="Удалить ссылку">✕</button>` : ''}
+             </div>`
+          : canEdit
+            ? `<button class="doc-link-btn" onclick="showTestLinkInput(${i})">🔗 Добавить ссылку</button>
+               <div id="test-link-input-${i}" style="display:none;flex-direction:column;gap:4px;margin-top:4px" class="doc-link-input-wrap">
+                 <input class="doc-link-input" id="test-link-url-${i}" placeholder="https://..." style="width:100%" value="${t.link || ''}"/>
+                 <button class="doc-link-save" onclick="saveTestLink(${i})" style="align-self:flex-end">Сохранить</button>
+               </div>`
+            : '<span class="tmc-readonly-hint">нет ссылки</span>'
+        }
+      </td>
+      ${canEdit ? `<td class="tmc-del-cell"><button class="tmc-del" onclick="deleteTest(${i})" title="Удалить">×</button></td>` : ''}
+    </tr>`).join('');
 
-  container.innerHTML = `
-    ${isAdmin ? `<button class="btn-add-test" onclick="showTestForm()">+ Добавить результат</button>` : ''}
-    <div id="test-form-wrap"></div>
-    ${testCards}`;
-}
-
-function showTestForm() {
-  const today = new Date().toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
-  document.getElementById('test-form-wrap').innerHTML = `
-    <div class="test-form">
-      <input id="tf-name" placeholder="Название теста / аттестации" />
-      <div class="row2">
-        <input id="tf-score" type="number" min="0" max="100" placeholder="Результат, %" />
-        <input id="tf-date" placeholder="Дата" value="${today}" />
-      </div>
-      <input id="tf-who" placeholder="Кто проводил" />
-      <textarea id="tf-comment" rows="2" placeholder="Комментарий (необязательно)"></textarea>
-      <div style="display:flex;gap:8px;justify-content:flex-end">
-        <button onclick="document.getElementById('test-form-wrap').innerHTML=''" style="padding:6px 14px;border:0.5px solid #d0cfc8;border-radius:8px;background:#fff;cursor:pointer;font-size:13px">Отмена</button>
-        <button onclick="saveTest()" style="padding:6px 14px;background:#1a1a18;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px">Сохранить</button>
-      </div>
+  const html = `<div class="tmc-wrap">
+    <table class="tmc-table">
+      <thead><tr>
+        <th>Наименование тестирования</th>
+        <th>Ссылка на сертификат / результат</th>
+        ${canEdit ? '<th></th>' : ''}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${canEdit ? `
+    <div class="tmc-add-row-outside">
+      <input class="tmc-add-input" id="test-new-name" placeholder="Название теста / аттестации..." onkeydown="if(event.key==='Enter'){addTest()}">
+      <button class="tmc-add-btn" type="button" onclick="addTest()">+ Добавить</button>
+    </div>` : ''}
     </div>`;
+  container.innerHTML = html;
 }
 
-function saveTest() {
-  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+function addTest() {
+  console.log('addTest called, currentId:', currentId);
+  const emp = employees.find(e => e.id === currentId);
+  if (!emp) { console.log('No emp found!'); return; }
   if (!emp.tests) emp.tests = [];
-  const name = document.getElementById('tf-name').value.trim();
-  const score = document.getElementById('tf-score').value;
-  const date = document.getElementById('tf-date').value.trim();
-  if (!name || !score) return;
-  emp.tests.unshift({ name, score, date, who: document.getElementById('tf-who').value.trim(), comment: document.getElementById('tf-comment').value.trim() });
+  const input = document.getElementById('test-new-name');
+  if (!input) { console.log('Input not found!'); return; }
+  const name = input.value.trim();
+  console.log('name value:', name);
+  if (!name) { input.focus(); return; }
+  emp.tests.push({ name, link: '' });
+  console.log('tests now:', emp.tests.length);
+  save();
+  renderTests();
+}
+
+function editTestField(i, field) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const t = emp.tests[i];
+  let promptText, currentVal = t[field] || '';
+  if (field === 'name') promptText = 'Название тестирования:';
+  const val = prompt(promptText, currentVal);
+  if (val === null) return;
+  t[field] = val.trim();
+  save(); renderTests();
+}
+
+function showTestLinkInput(i) {
+  const wrap = document.getElementById('test-link-input-' + i);
+  if (!wrap) return;
+  const isHidden = wrap.style.display === 'none' || !wrap.style.display;
+  wrap.style.display = isHidden ? 'flex' : 'none';
+  wrap.style.flexDirection = 'column';
+  if (isHidden) {
+    const input = document.getElementById('test-link-url-' + i);
+    input.focus();
+    input.select();
+  }
+}
+
+function saveTestLink(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  const input = document.getElementById('test-link-url-' + i);
+  const url = input.value.trim();
+  if (!url) return;
+  const t = emp.tests[i];
+  t.link = url.startsWith('http') ? url : 'https://' + url;
+  save(); renderTests();
+}
+
+function removeTestLink(i) {
+  const emp = employees.find(e => e.id === currentId); if (!emp) return;
+  emp.tests[i].link = '';
   save(); renderTests();
 }
 
@@ -1983,7 +2161,68 @@ function switchDashTab(mode, el) {
   renderDashboard(mode);
 }
 
+function renderStatsTab() {
+  const passed = employees.filter(e => e.archiveStatus === 'passed').length;
+  const failed = employees.filter(e => e.archiveStatus === 'failed').length;
+  const active = employees.filter(e => !e.archiveStatus || e.archiveStatus === 'active').length;
+  const totalArchived = passed + failed;
+
+  const passedPct = totalArchived ? Math.round(passed / totalArchived * 100) : 0;
+  const failedPct = totalArchived ? Math.round(failed / totalArchived * 100) : 0;
+
+  const content = document.getElementById('dash-content');
+
+  if (totalArchived === 0) {
+    content.innerHTML = `<div class="dash-empty">Пока нет архивных сотрудников для статистики.<br>Перенесите сотрудников в архив через кнопки «Прошёл» / «Не прошёл» на главной странице.</div>`;
+    return;
+  }
+
+  content.innerHTML = `
+    <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-bottom:20px">
+      <div style="flex-shrink:0">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#f0efe8" stroke-width="28"/>
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#1D9E75" stroke-width="28"
+            stroke-dasharray="${passedPct * 4.4} 440" stroke-dashoffset="0" transform="rotate(-90 90 90)"/>
+          <circle cx="90" cy="90" r="70" fill="none" stroke="#A32D2D" stroke-width="28"
+            stroke-dasharray="${failedPct * 4.4} 440" stroke-dashoffset="${-passedPct * 4.4}" transform="rotate(-90 90 90)"/>
+          <text x="90" y="84" text-anchor="middle" font-size="28" font-weight="600" fill="#1a1a18">${totalArchived}</text>
+          <text x="90" y="104" text-anchor="middle" font-size="11" fill="#888780">всего в архиве</text>
+        </svg>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:14px;height:14px;border-radius:3px;background:#1D9E75"></div>
+          <div><b style="font-size:20px;color:#1D9E75">${passedPct}%</b> <span style="color:#888780;font-size:13px">прошли испытательный срок (${passed} чел.)</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:14px;height:14px;border-radius:3px;background:#A32D2D"></div>
+          <div><b style="font-size:20px;color:#A32D2D">${failedPct}%</b> <span style="color:#888780;font-size:13px">не прошли испытательный срок (${failed} чел.)</span></div>
+        </div>
+        <div style="font-size:12px;color:#888780;margin-top:4px">Сейчас на адаптации: <b>${active}</b> чел.</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:500;color:#888780;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.03em">Архив сотрудников</div>
+    <table class="dash-table">
+      <thead><tr><th>Сотрудник</th><th>Должность</th><th>Статус</th><th>Дата переноса</th></tr></thead>
+      <tbody>
+        ${employees.filter(e => e.archiveStatus === 'passed' || e.archiveStatus === 'failed').map(e => `
+          <tr>
+            <td class="dash-emp-name">${e.name}</td>
+            <td>${e.role}</td>
+            <td>${e.archiveStatus === 'passed' ? '<span style="color:#1D9E75">✅ Прошёл</span>' : '<span style="color:#A32D2D">❌ Не прошёл</span>'}</td>
+            <td>${e.archivedDate || '—'}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
 function renderDashboard(mode) {
+  if (mode === 'stats') {
+    renderStatsTab();
+    return;
+  }
+
   const today = new Date(); today.setHours(0,0,0,0);
   const todayStr = today.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'});
   
