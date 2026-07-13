@@ -994,6 +994,71 @@ function restoreEmployee(id) {
   renderList();
 }
 
+function openModal() {
+  document.getElementById('modal').classList.remove('hidden');
+  const d = new Date();
+  document.getElementById('f-date').value = d.toISOString().split('T')[0];
+  document.getElementById('f-name').value = '';
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+}
+
+function createEmployee() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const role    = document.getElementById('f-role').value;
+  const startDate = document.getElementById('f-date').value;
+  const mentor  = document.getElementById('f-mentor').value;
+  const manager = document.getElementById('f-manager').value;
+  const hr      = document.getElementById('f-hr').value.trim() || 'Калугина Екатерина';
+
+  const startD = startDate ? new Date(startDate) : new Date();
+  const startDisplay = startD.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const adaptEndDate = new Date(startD);
+  adaptEndDate.setMonth(adaptEndDate.getMonth() + 3);
+
+  const taskList = role === 'Прораб'
+    ? makeTasksForeman(startDate, manager, hr, mentor)
+    : role === 'Личный помощник'
+    ? makeTasksAssistant(startDate, manager, hr, mentor)
+    : makeTasks(startDate, manager, hr, mentor);
+
+  const emp = {
+    id: 'emp_' + Date.now(),
+    name, role, startDate, startDisplay, manager, hr, mentor,
+    adaptEnd: adaptEndDate.toISOString().split('T')[0],
+    adaptEndDisplay: adaptEndDate.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}),
+    tasks: taskList,
+    checked: new Array(taskList.length).fill(false),
+    stageSizes: null,
+    comments: [], tests: [], career: {}, docs: [], tmc: [],
+    archiveStatus: 'active'
+  };
+
+  // If copying from another employee — use their tasks instead of template
+  if (window._copyFromEmpId) {
+    const srcEmp = employees.find(e => e.id === window._copyFromEmpId);
+    if (srcEmp) {
+      emp.tasks = srcEmp.tasks.map(t => ({
+        name: t.name, owner: t.owner, who: t.who, date: '—', note: '', result: ''
+      }));
+      emp.checked = new Array(emp.tasks.length).fill(false);
+      emp.stageSizes = srcEmp.stageSizes ? [...srcEmp.stageSizes] : null;
+    }
+    window._copyFromEmpId = null;
+    const btn = document.querySelector('#modal .btn-create');
+    if (btn) btn.textContent = 'Создать план';
+  }
+
+  employees.push(emp);
+  closeModal();
+  save();
+  showList();
+  renderList();
+}
+
 function renderList() {
   const el = document.getElementById('emp-list');
   const label = document.getElementById('emp-count-label');
@@ -2339,22 +2404,27 @@ function closeCopyModal() {
 function confirmCopyPlan() {
   if (!selectedCopyEmpId) { alert('Выберите сотрудника'); return; }
   const src = employees.find(e => e.id === selectedCopyEmpId);
-  const dst = employees.find(e => e.id === currentId);
-  if (!src || !dst) return;
-  if (!confirm(`Скопировать ${src.tasks.length} задач от ${src.name}? Текущие задачи будут заменены.`)) return;
-  // Copy tasks without checked, notes, comments
-  dst.tasks = src.tasks.map(t => ({
-    name: t.name,
-    owner: t.owner,
-    who: t.who,
-    date: '—'
-  }));
-  dst.checked = new Array(dst.tasks.length).fill(false);
-  dst.stageSizes = src.stageSizes ? [...src.stageSizes] : null;
+  if (!src) return;
+
   closeCopyModal();
-  save();
-  renderDetailTasks(dst);
-  updateDetailProgress(dst);
+
+  // Open add-employee modal pre-filled with source employee's role/manager/mentor
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-role').value = src.role;
+  document.getElementById('f-mentor').value = src.mentor || '';
+  document.getElementById('f-manager').value = src.manager || '';
+  document.getElementById('f-hr').value = src.hr || 'Калугина Екатерина';
+  const d = new Date();
+  document.getElementById('f-date').value = d.toISOString().split('T')[0];
+
+  // Override createEmployee to copy tasks from src instead of generating new
+  window._copyFromEmpId = src.id;
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('f-name').focus();
+
+  // Change button text temporarily
+  const btn = document.querySelector('#modal .btn-create');
+  if (btn) btn.textContent = 'Создать план (копия от ' + src.name.split(' ')[0] + ')';
 }
 
 /* ===== СКАЧАТЬ WORD ===== */
