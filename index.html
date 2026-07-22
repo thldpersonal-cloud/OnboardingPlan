@@ -994,6 +994,15 @@ function restoreEmployee(id) {
   renderList();
 }
 
+function deleteEmployee(id) {
+  const emp = employees.find(e => e.id === id);
+  if (!emp) return;
+  if (!confirm('Удалить план адаптации «' + emp.name + '»? Это действие нельзя отменить.')) return;
+  employees = employees.filter(e => e.id !== id);
+  save();
+  renderList();
+}
+
 function openModal() {
   document.getElementById('modal').classList.remove('hidden');
   const d = new Date();
