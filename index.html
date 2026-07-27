@@ -453,6 +453,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option>Личный помощник</option>
         <option>Руководитель проектов</option>
         <option>Региональный менеджер по продажам</option>
+        <option>Менеджер по продажам</option>
+        <option>Менеджер по работе с клиентами</option>
         <option>Другое</option>
       </select>
     </div>
@@ -469,6 +471,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
         <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
         <option value="Черепанова Лиля">Черепанова Лиля — офис-менеджер</option>
+        <option value="Саулин Евгений">Саулин Евгений — производственный директор</option>
       </select>
     </div>
     <div class="field"><label>Руководитель</label>
@@ -483,6 +486,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
         <option value="Зенков Александр">Зенков Александр — нач. отдела ПТО</option>
         <option value="Шмидт Светлана">Шмидт Светлана — ассистент руководителя</option>
         <option value="Черепанова Лиля">Черепанова Лиля — офис-менеджер</option>
+        <option value="Саулин Евгений">Саулин Евгений — производственный директор</option>
       </select>
     </div>
     <div class="field"><label>HR-менеджер</label><input id="f-hr" placeholder="Калугина Екатерина" value="Калугина Екатерина" /></div>
@@ -724,14 +728,25 @@ async function load() {
   }
   migrateEmployees();
   if (isEmployeeView && viewEmpId) {
-    // Show only the specific employee's plan
     const emp = employees.find(e => e.id === viewEmpId);
     if (emp) {
       showDetail(emp.id);
-      // Hide back button and add button for employee view
-      document.querySelector('.back-btn') && (document.querySelector('.back-btn').style.display = 'none');
-      document.getElementById('btn-save-detail') && (document.getElementById('btn-save-detail').style.display = 'none');
-      document.querySelector('[onclick="openShareModal()"]') && (document.querySelector('[onclick="openShareModal()"]').style.display = 'none');
+      // Hide ALL navigation — employee sees ONLY their own plan
+      setTimeout(() => {
+        // Hide back button
+        const backBtn = document.querySelector('.back-btn');
+        if (backBtn) backBtn.style.display = 'none';
+        // Hide edit, save, share, copy, word buttons
+        ['btn-edit-mode','btn-save-detail','btn-share','btn-copy-plan','btn-word'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        });
+        // Hide edit mode banner
+        const banner = document.getElementById('edit-mode-banner');
+        if (banner) banner.style.display = 'none';
+        // Prevent showList() from being called
+        window.showList = function() {};
+      }, 50);
     } else {
       document.getElementById('app').innerHTML = '<div style="text-align:center;padding:60px 20px;color:#888780"><div style="font-size:32px;margin-bottom:12px">🔍</div><div>План адаптации не найден.<br>Обратитесь к HR-менеджеру.</div></div>';
     }
@@ -999,8 +1014,7 @@ function deleteEmployee(id) {
   if (!emp) return;
   if (!confirm('Удалить план адаптации «' + emp.name + '»? Это действие нельзя отменить.')) return;
   employees = employees.filter(e => e.id !== id);
-  save();
-  renderList();
+  save(); renderList();
 }
 
 function openModal() {
@@ -1008,10 +1022,14 @@ function openModal() {
   const d = new Date();
   document.getElementById('f-date').value = d.toISOString().split('T')[0];
   document.getElementById('f-name').value = '';
+  const btn = document.querySelector('#modal .btn-create');
+  if (btn) btn.textContent = 'Создать план';
+  window._copyFromEmpId = null;
 }
 
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
+  window._copyFromEmpId = null;
 }
 
 function createEmployee() {
@@ -1022,8 +1040,7 @@ function createEmployee() {
   const mentor  = document.getElementById('f-mentor').value;
   const manager = document.getElementById('f-manager').value;
   const hr      = document.getElementById('f-hr').value.trim() || 'Калугина Екатерина';
-
-  const startD = startDate ? new Date(startDate) : new Date();
+  const startD  = startDate ? new Date(startDate) : new Date();
   const startDisplay = startD.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   const adaptEndDate = new Date(startD);
   adaptEndDate.setMonth(adaptEndDate.getMonth() + 3);
@@ -1046,19 +1063,14 @@ function createEmployee() {
     archiveStatus: 'active'
   };
 
-  // If copying from another employee — use their tasks instead of template
   if (window._copyFromEmpId) {
-    const srcEmp = employees.find(e => e.id === window._copyFromEmpId);
-    if (srcEmp) {
-      emp.tasks = srcEmp.tasks.map(t => ({
-        name: t.name, owner: t.owner, who: t.who, date: '—', note: '', result: ''
-      }));
+    const src = employees.find(e => e.id === window._copyFromEmpId);
+    if (src) {
+      emp.tasks = src.tasks.map(t => ({name:t.name,owner:t.owner,who:t.who,date:'—',note:'',result:''}));
       emp.checked = new Array(emp.tasks.length).fill(false);
-      emp.stageSizes = srcEmp.stageSizes ? [...srcEmp.stageSizes] : null;
+      emp.stageSizes = src.stageSizes ? [...src.stageSizes] : null;
     }
     window._copyFromEmpId = null;
-    const btn = document.querySelector('#modal .btn-create');
-    if (btn) btn.textContent = 'Создать план';
   }
 
   employees.push(emp);
@@ -1219,6 +1231,7 @@ const PEOPLE = [
   { owner: 'mentor',     who: 'Уткин Александр',     label: 'Уткин Александр — старший прораб' },
   { owner: 'mentor',     who: 'Зенков Александр',    label: 'Зенков Александр — нач. отдела ПТО' },
   { owner: 'mentor',     who: 'Шмидт Светлана',      label: 'Шмидт Светлана — ассистент руководителя' },
+  { owner: 'mentor',     who: 'Саулин Евгений',     label: 'Саулин Евгений — производственный директор' },
 ];
 
 const OWNER_OPTIONS = PEOPLE;
@@ -1373,6 +1386,7 @@ function renderComments(emp) {
     { value: 'Зенков Александр',    label: 'Зенков Александр — нач. отдела ПТО' },
     { value: 'Шмидт Светлана',      label: 'Шмидт Светлана — ассистент руководителя' },
     { value: 'Черепанова Лиля',     label: 'Черепанова Лиля — офис-менеджер' },
+    { value: 'Саулин Евгений',      label: 'Саулин Евгений — производственный директор' },
   ];
 
   const optionsHTML = COMMENT_PEOPLE.map(p =>
@@ -2413,27 +2427,22 @@ function closeCopyModal() {
 function confirmCopyPlan() {
   if (!selectedCopyEmpId) { alert('Выберите сотрудника'); return; }
   const src = employees.find(e => e.id === selectedCopyEmpId);
-  if (!src) return;
-
+  const dst = employees.find(e => e.id === currentId);
+  if (!src || !dst) return;
+  if (!confirm(`Скопировать ${src.tasks.length} задач от ${src.name}? Текущие задачи будут заменены.`)) return;
+  // Copy tasks without checked, notes, comments
+  dst.tasks = src.tasks.map(t => ({
+    name: t.name,
+    owner: t.owner,
+    who: t.who,
+    date: '—'
+  }));
+  dst.checked = new Array(dst.tasks.length).fill(false);
+  dst.stageSizes = src.stageSizes ? [...src.stageSizes] : null;
   closeCopyModal();
-
-  // Open add-employee modal pre-filled with source employee's role/manager/mentor
-  document.getElementById('f-name').value = '';
-  document.getElementById('f-role').value = src.role;
-  document.getElementById('f-mentor').value = src.mentor || '';
-  document.getElementById('f-manager').value = src.manager || '';
-  document.getElementById('f-hr').value = src.hr || 'Калугина Екатерина';
-  const d = new Date();
-  document.getElementById('f-date').value = d.toISOString().split('T')[0];
-
-  // Override createEmployee to copy tasks from src instead of generating new
-  window._copyFromEmpId = src.id;
-  document.getElementById('modal').classList.remove('hidden');
-  document.getElementById('f-name').focus();
-
-  // Change button text temporarily
-  const btn = document.querySelector('#modal .btn-create');
-  if (btn) btn.textContent = 'Создать план (копия от ' + src.name.split(' ')[0] + ')';
+  save();
+  renderDetailTasks(dst);
+  updateDetailProgress(dst);
 }
 
 /* ===== СКАЧАТЬ WORD ===== */
